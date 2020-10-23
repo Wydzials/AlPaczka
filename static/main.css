@@ -1,0 +1,58 @@
+:root {
+    --green: rgb(39, 174, 96);
+  }
+
+body { 
+  font-family: Arial, Helvetica, sans-serif; 
+}
+
+
+/* --- navigation bar --- */
+nav ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: var(--green);
+}
+
+nav li {
+    float: left;
+}
+
+nav li a {
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 16px;
+    text-decoration: none;
+}
+  
+nav li a:hover {
+    background-color: black;
+}
+
+
+/* --- header --- */
+header {
+    padding: 30px;
+    text-align: center;
+    font-size: 60px;
+    font-weight: bold;
+}
+
+header .author {
+    font-size: 30px;
+    font-weight: normal;
+}
+
+
+/* --- footer --- */
+footer {
+    width: 100%;
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    text-align: center;
+    background-color: var(--green);
+}

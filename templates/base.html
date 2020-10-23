@@ -1,0 +1,40 @@
+<!doctype html>
+
+<head>
+    <title>AlPaczka</title>
+    <meta name="description" content="Opis">
+    <meta name="author" content="Szymon Wydziałkiewicz">
+
+    <link rel="stylesheet" href="{{ url_for('static',filename='main.css') }}">
+
+    {% block head %}{% endblock %}
+
+</head>
+
+<body>
+    <nav>
+        <ul>
+            <li><a href="{{ url_for('index') }}">Strona główna</a></li>
+            <li><a href="{{ url_for('sender_sign_up') }}">Rejestracja nadawcy</a></li>
+        </ul>
+    </nav>
+
+
+    <header>
+        <div class="title">AlPaczka</div>
+        <div class="author">Szymon Wydziałkiewicz</div>
+    </header>
+
+
+    {% block body %}{% endblock %}
+
+
+    <footer>
+        <p>2020 <a href="https://github.com/Wydzials/AlPaczka">Link do repozytorium</a></p>
+    </footer>
+
+
+    <script src="#"></script>
+</body>
+
+</html>

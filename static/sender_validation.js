@@ -7,18 +7,31 @@ function check_password() {
     password1 = password.value;
     password2 = confirm_password.value;
 
-    p = document.getElementById("password_error");
+    passwords_not_match = document.getElementById("passwords_dont_match");
+    password_too_weak = document.getElementById("password_too_weak");
 
     if (password1.length > 0 && password2.length > 0) {
         if (password1 === password2) {
-            password.className = "";
-            confirm_password.className = "";
-            p.hidden = true;
-            return 0;
+            passwords_not_match.hidden = true;
+
+            if (password1.length < 8) {
+                password.className = "error";
+                confirm_password.className = "error";
+
+                password_too_weak.hidden = false;
+                return 1;
+            } else {
+                password.className = "ok";
+                confirm_password.className = "ok";
+
+                password_too_weak.hidden = true;
+                return 0;
+            }
         } else {
             password.className = "error";
             confirm_password.className = "error";
-            p.hidden = false;
+            passwords_not_match.hidden = false;
+            password_too_weak.hidden = true;
             return 1;
         }
     }
@@ -29,6 +42,7 @@ function submit(event) {
 
     if (errors > 0) {
         event.preventDefault();
+        alert("Formularz zawiera błędy.")
     }
 }
 

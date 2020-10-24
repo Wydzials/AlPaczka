@@ -18,7 +18,8 @@
 
         <li><input type="password" name="password" id="password" placeholder="Hasło" autocomplete="off" required/></li>
         <li><input type="password" name="confirm_password" id="confirm_password" placeholder="Powtórz hasło" autocomplete="off" required/></li>
-        <label for="password" id="password_error" hidden>Hasła nie są takie same.</label>
+        <label for="password" id="passwords_dont_match" hidden>Hasła nie są takie same.</label>
+        <label for="password" id="password_too_weak" hidden>Minimalna długość hasła to 8 znaków.</label>
 
         <li><label for="file">Wybierz zdjęcie:</label></li>
         <li><input type="file" name="file" accept="image/png, image/jpg"></li>

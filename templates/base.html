@@ -5,7 +5,7 @@
     <meta name="description" content="Opis">
     <meta name="author" content="Szymon Wydziałkiewicz">
 
-    <link rel="stylesheet" href="{{ url_for('static',filename='main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 
     {% block head %}{% endblock %}
 
@@ -14,16 +14,17 @@
 <body>
     <nav>
         <ul>
+            <li><img src="{{ url_for('static', filename='alpaca.jpeg') }}" class="logo"></li>
+            <li>
+                <header>
+                    <h1>AlPaczka</h1>
+                    <h5>Szymon Wydziałkiewicz</h5>
+                </header>
+            </li>
             <li><a href="{{ url_for('index') }}">Strona główna</a></li>
             <li><a href="{{ url_for('sender_sign_up') }}">Rejestracja nadawcy</a></li>
         </ul>
     </nav>
-
-
-    <header>
-        <div class="title">AlPaczka</div>
-        <div class="author">Szymon Wydziałkiewicz</div>
-    </header>
 
 
     {% block body %}{% endblock %}

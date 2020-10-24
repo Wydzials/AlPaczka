@@ -6,6 +6,7 @@
     <meta name="author" content="Szymon Wydziałkiewicz">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='alpaca.ico') }}">
 
     {% block head %}{% endblock %}
 
@@ -14,7 +15,7 @@
 <body>
     <header>
         <ul class="title">
-            <li><img src="{{ url_for('static', filename='alpaca.jpeg') }}" class="logo"></li>
+            <li><img src="{{ url_for('static', filename='alpaca.ico') }}" class="logo"></li>
             <li><div class="title_text">
                 <h1>AlPaczka</h1>
                 <h5>Szymon Wydziałkiewicz</h5></div>

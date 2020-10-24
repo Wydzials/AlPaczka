@@ -2,24 +2,30 @@
 
 
 {% block head %}
-
+<script src="{{ url_for('static', filename='sender_validation.js') }}" defer></script>
 {% endblock %}
 
 
 
 {% block body %}
-<h2>Rejestracja nadawcy</h2>
+<section>
+    <h2>Rejestracja nadawcy</h2>
 
-<form method="POST" action="#">
-    <li><input type="text" name="firstname" placeholder="Imię" autocomplete="off"/></li>
-    <li><input type="text" name="lastname" placeholder="Nazwisko" autocomplete="off"/></li>
-    <li><input type="password" name="password" placeholder="Hasło" autocomplete="off"/></li>
-    <li><input type="password" name="password_repeat" placeholder="Powtórz hasło" autocomplete="off"/></li>
-    <li><input type="text" name="username" placeholder="Nazwa użytkownika" autocomplete="off"/></li>
-    <li><label for="file">Wybierz zdjęcie:</label></li>
-    <li><input type="file" name="file" accept="image/*"></li>
-    
-    <li><input type="submit" name="submit" value="Zarejestruj" /></li>
-</form>
+    <form method="POST" action="#" enctyp="multipart/form-data" id="form">
+        <li><input type="text" name="firstname" id="firstname" placeholder="Imię" autocomplete="off" required/></li>
+        <li><input type="text" name="lastname" id="lastname" placeholder="Nazwisko" autocomplete="off" required/></li>
+        <li><input type="text" name="username" id="username" placeholder="Nazwa użytkownika" autocomplete="off" required/></li>
+
+        <li><input type="password" name="password" id="password" placeholder="Hasło" autocomplete="off" required/></li>
+        <li><input type="password" name="confirm_password" id="confirm_password" placeholder="Powtórz hasło" autocomplete="off" required/></li>
+        <label for="password" id="password_error" hidden>Hasła nie są takie same.</label>
+
+        <li><label for="file">Wybierz zdjęcie:</label></li>
+        <li><input type="file" name="file" accept="image/png, image/jpg"></li>
+
+        <li><input type="submit" name="submit" value="Zarejestruj" /></li>
+    </form>
+
+</section>
 
 {% endblock %}

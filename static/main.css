@@ -59,10 +59,15 @@ header li a:hover {
 /* --- form --- */
 form {
     text-align: center;
+    background-color: white;
 }
 form li {
     list-style-type: none;
     padding: 5px;
+}
+
+.error {
+    background-color: tomato;
 }
 
 

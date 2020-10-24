@@ -8,5 +8,18 @@
 
 
 {% block body %}
+<h2>Rejestracja nadawcy</h2>
+
+<form method="POST" action="#">
+    <li><input type="text" name="firstname" placeholder="Imię" autocomplete="off"/></li>
+    <li><input type="text" name="lastname" placeholder="Nazwisko" autocomplete="off"/></li>
+    <li><input type="password" name="password" placeholder="Hasło" autocomplete="off"/></li>
+    <li><input type="password" name="password_repeat" placeholder="Powtórz hasło" autocomplete="off"/></li>
+    <li><input type="text" name="username" placeholder="Nazwa użytkownika" autocomplete="off"/></li>
+    <li><label for="file">Wybierz zdjęcie:</label></li>
+    <li><input type="file" name="file" accept="image/*"></li>
+    
+    <li><input type="submit" name="submit" value="Zarejestruj" /></li>
+</form>
 
 {% endblock %}

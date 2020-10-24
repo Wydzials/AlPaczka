@@ -12,20 +12,23 @@
 </head>
 
 <body>
-    <nav>
-        <ul>
+    <header>
+        <ul class="title">
             <li><img src="{{ url_for('static', filename='alpaca.jpeg') }}" class="logo"></li>
-            <li>
-                <header>
-                    <h1>AlPaczka</h1>
-                    <h5>Szymon Wydziałkiewicz</h5>
-                </header>
+            <li><div class="title_text">
+                <h1>AlPaczka</h1>
+                <h5>Szymon Wydziałkiewicz</h5></div>
             </li>
-            <li><a href="{{ url_for('index') }}">Strona główna</a></li>
-            <li><a href="{{ url_for('sender_sign_up') }}">Rejestracja nadawcy</a></li>
         </ul>
-    </nav>
 
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('index') }}">Strona główna</a></li>
+                <li><a href="{{ url_for('sender_sign_up') }}">Rejestracja nadawcy</a></li>
+            </ul>
+        </nav>
+
+    </header>
 
     {% block body %}{% endblock %}
 

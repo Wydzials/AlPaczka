@@ -34,6 +34,12 @@ function check_password() {
             password_too_weak.hidden = true;
             return 1;
         }
+    } else {
+        passwords_not_match.hidden = true;
+        password_too_weak.hidden = true;
+
+        password.className = "ok";
+        confirm_password.className = "ok";
     }
 }
 

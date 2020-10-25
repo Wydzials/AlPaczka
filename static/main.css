@@ -9,6 +9,16 @@ body {
     text-align: center;
 }
 
+.text {
+    text-align: justify;
+}
+
+.photo {
+    float: right;
+    padding-left: 20px;
+}
+
+
 /* --- header --- */
 header {
     margin-bottom: 20px;

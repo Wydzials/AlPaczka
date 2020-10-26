@@ -9,23 +9,72 @@
 
 {% block body %}
 <section>
-    <h2>Rejestracja nadawcy</h2>
+    
 
-    <form method="POST" action="#" enctyp="multipart/form-data" id="form">
-        <li><input type="text" name="firstname" id="firstname" placeholder="Imię" autocomplete="off" required/></li>
-        <li><input type="text" name="lastname" id="lastname" placeholder="Nazwisko" autocomplete="off" required/></li>
-        <li><input type="text" name="username" id="username" placeholder="Nazwa użytkownika" autocomplete="off" required/></li>
+    <div class="row justify-content-center">
+        <div class="col-4">
+            <h2>Rejestracja nadawcy</h2>
+            <form class="needs-validation" novalidate method="POST" action="#" enctyp="multipart/form-data" id="form">
+                <div class="form-group">
+                    <input type="text" class="form-control" name="firstname" id="firstname" placeholder="Imię"
+                        autocomplete="off" required />
+                </div>
 
-        <li><input type="password" name="password" id="password" placeholder="Hasło" autocomplete="off" required/></li>
-        <li><input type="password" name="confirm_password" id="confirm_password" placeholder="Powtórz hasło" autocomplete="off" required/></li>
-        <label for="password" id="passwords_dont_match" hidden>Hasła nie są takie same.</label>
-        <label for="password" id="password_too_weak" hidden>Minimalna długość hasła to 8 znaków.</label>
+                <div class="form-group">
+                    <input type="text" class="form-control" name="lastname" id="lastname" placeholder="Nazwisko"
+                        autocomplete="off" required />
+                </div>
 
-        <li><label for="file">Wybierz zdjęcie:</label></li>
-        <li><input type="file" name="file" accept="image/png, image/jpg"></li>
+                <div class="form-group">
+                    <input type="text" class="form-control" name="login" id="login" placeholder="Nazwa użytkownika"
+                        autocomplete="off" required />
+                </div>
 
-        <li><input type="submit" name="submit" value="Zarejestruj" /></li>
-    </form>
+
+                <div class="form-group">
+                    <label for="sex-k">Wybierz płeć:</label>
+                    <div class="form-check">
+                        <input type="radio" class="form-check-input" id="sex-k" name="sex" value="K" required>
+                        <label class="form-check-label" for="sex-k">Kobieta</label>
+                    </div>
+                    <div class="form-check">
+                        <input type="radio" class="form-check-input" id="sex-m" name="sex" value="M" required>
+                        <label class="form-check-label" for="sex-m">Mężczyzna</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <input type="password" class="form-control" name="password" id="password" placeholder="Hasło"
+                        autocomplete="off" aria-describedby="too-short-password" required />
+                    
+                    <div class="invalid-feedback" id="unequal-passwords">
+                        Hasło musi mieć przynajmniej 8 znaków.
+                    </div>
+                </div>
+                <div class="form-group">
+                    <input type="password" class="form-control" id="confirm_password" placeholder="Powtórz hasło"
+                        autocomplete="off" aria-describedby="unequal-passwords" required />
+
+                    <div class="invalid-feedback" id="unequal-passwords">
+                        Hasła nie są takie same.
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="file">Wybierz zdjęcie:</label>
+                    <input type="file" class="form-control-file" name="photo" accept="image/png, image/jpg">
+                </div>
+
+                <input type="submit" class="btn btn-success" name="submit" value="Zarejestruj"/>
+
+                <label for="password" id="passwords_dont_match" hidden>Hasła nie są takie same.</label>
+                <label for="password" id="password_too_weak" hidden>Minimalna długość hasła to 8 znaków.</label>
+
+                
+
+            </form>
+        </div>
+    </div>
 
 </section>
 

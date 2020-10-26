@@ -4,6 +4,9 @@ const password = document.getElementById("password");
 const confirm_password = document.getElementById("confirm_password");
 const login = document.getElementById("login");
 const form = document.getElementById('form');
+const invalid_login = document.getElementById("invalid-login");
+
+let isLoginValid = false;
 
 function setValid(form) {
     form.classList.remove("is-invalid")
@@ -16,7 +19,7 @@ function setInvalid(form) {
 }
 
 
-function check_password() {
+function checkPassword() {
     password1 = password.value;
     password2 = confirm_password.value;
 
@@ -62,12 +65,41 @@ function checkName(name) {
 }
 
 function submit(event) {
-    errors = check_password() + checkName(firstname.value) + checkName(lastname.value);
+    errors = checkPassword() + checkName(firstname.value) + checkName(lastname.value);
 
-    if (errors > 0) {
+    if (errors > 0 || isLoginValid == false) {
         event.preventDefault();
         alert("Formularz zawiera błędy.")
     }
+}
+
+function ajaxLoginCheck() {
+    const xhttp = new XMLHttpRequest();
+
+    xhttp.onreadystatechange = function () {
+        if (this.readyState == 4) {
+            if (this.status == 200) {
+                const response = JSON.parse(this.responseText);
+
+                if (response[login.value] == "available") {
+                    setValid(login);
+                    console.log(response[login.value]);
+                    isLoginValid = true;
+                } else {
+                    invalid_login.innerText = "Wybrana nazwa użytkownika jest zajęta.";
+                    setInvalid(login);
+                    isLoginValid = false;
+                }
+            } else {
+                invalid_login.innerText = "Błąd komunikacji z serwerem obsługującym rejestrację.";
+                setInvalid(login);
+                isLoginValid = false;
+            }
+        }
+    };
+
+    xhttp.open("GET", "https://infinite-hamlet-29399.herokuapp.com/check/" + login.value, true);
+    xhttp.send();
 }
 
 function attachEvents() {
@@ -75,9 +107,11 @@ function attachEvents() {
 
     login.addEventListener("change", function () {
         if (/^[a-z]+$/.test(login.value)) {
-            setValid(login);
+            ajaxLoginCheck();
         } else {
+            invalid_login.innerText = "Nazwa użytkownika musi zawierać tylko małe litery.";
             setInvalid(login);
+            isLoginValid = false;
         }
     });
 
@@ -97,8 +131,8 @@ function attachEvents() {
         }
     });
 
-    password.addEventListener("keyup", check_password);
-    confirm_password.addEventListener("keyup", check_password);
+    password.addEventListener("keyup", checkPassword);
+    confirm_password.addEventListener("keyup", checkPassword);
 }
 
 attachEvents()

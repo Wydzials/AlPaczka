@@ -6,15 +6,12 @@
 {% endblock %}
 
 
-
 {% block body %}
 <section>
-
-
     <div class="row justify-content-center">
         <div class="col-4">
             <h2>Rejestracja nadawcy</h2>
-            <form class="needs-validation" method="POST" action="#" enctyp="multipart/form-data" id="form">
+            <form class="needs-validation" method="POST" action="https://infinite-hamlet-29399.herokuapp.com/sender/register" enctype="multipart/form-data" id="form">
                 <div class="form-group">
                     <input type="text" class="form-control" name="firstname" id="firstname" placeholder="Imię"
                         autocomplete="off" aria-describedby="invalid-firstname" required>
@@ -80,13 +77,9 @@
 
                 <label for="password" id="passwords_dont_match" hidden>Hasła nie są takie same.</label>
                 <label for="password" id="password_too_weak" hidden>Minimalna długość hasła to 8 znaków.</label>
-
-
-
             </form>
         </div>
     </div>
-
 </section>
 
 {% endblock %}

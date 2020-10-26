@@ -9,27 +9,38 @@
 
 {% block body %}
 <section>
-    
+
 
     <div class="row justify-content-center">
         <div class="col-4">
             <h2>Rejestracja nadawcy</h2>
-            <form class="needs-validation" novalidate method="POST" action="#" enctyp="multipart/form-data" id="form">
+            <form class="needs-validation" method="POST" action="#" enctyp="multipart/form-data" id="form">
                 <div class="form-group">
                     <input type="text" class="form-control" name="firstname" id="firstname" placeholder="Imię"
-                        autocomplete="off" required />
+                        autocomplete="off" aria-describedby="invalid-firstname" required>
+
+                    <div class="invalid-feedback" id="invalid-firstname">
+                        Imię musi zaczynać się wielką literą i mieć co najmniej jedną małą literę.
+                    </div>
                 </div>
 
                 <div class="form-group">
                     <input type="text" class="form-control" name="lastname" id="lastname" placeholder="Nazwisko"
-                        autocomplete="off" required />
+                        autocomplete="off" aria-describedby="invalid-lastname" required>
+
+                    <div class="invalid-feedback" id="invalid-lastname">
+                        Nazwisko musi zaczynać się wielką literą i mieć co najmniej jedną małą literę.
+                    </div>    
                 </div>
 
                 <div class="form-group">
                     <input type="text" class="form-control" name="login" id="login" placeholder="Nazwa użytkownika"
-                        autocomplete="off" required />
-                </div>
+                        autocomplete="off" aria-describedby="invalid-login" required>
 
+                    <div class="invalid-feedback" id="invalid-login">
+                        Nazwa użytkownika musi zawierać tylko małe litery.
+                    </div> 
+                </div>
 
                 <div class="form-group">
                     <label for="sex-k">Wybierz płeć:</label>
@@ -45,15 +56,15 @@
 
                 <div class="form-group">
                     <input type="password" class="form-control" name="password" id="password" placeholder="Hasło"
-                        autocomplete="off" aria-describedby="too-short-password" required />
-                    
+                        autocomplete="off" aria-describedby="too-short-password" required>
+
                     <div class="invalid-feedback" id="unequal-passwords">
                         Hasło musi mieć przynajmniej 8 znaków.
                     </div>
                 </div>
                 <div class="form-group">
                     <input type="password" class="form-control" id="confirm_password" placeholder="Powtórz hasło"
-                        autocomplete="off" aria-describedby="unequal-passwords" required />
+                        autocomplete="off" aria-describedby="unequal-passwords" required>
 
                     <div class="invalid-feedback" id="unequal-passwords">
                         Hasła nie są takie same.
@@ -65,12 +76,12 @@
                     <input type="file" class="form-control-file" name="photo" accept="image/png, image/jpg">
                 </div>
 
-                <input type="submit" class="btn btn-success" name="submit" value="Zarejestruj"/>
+                <input type="submit" class="btn btn-success" name="submit" value="Zarejestruj">
 
                 <label for="password" id="passwords_dont_match" hidden>Hasła nie są takie same.</label>
                 <label for="password" id="password_too_weak" hidden>Minimalna długość hasła to 8 znaków.</label>
 
-                
+
 
             </form>
         </div>

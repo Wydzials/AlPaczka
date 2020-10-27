@@ -124,12 +124,12 @@ function attachEvents() {
     });
 
     firstname.addEventListener("keyup", function () {
-        invalidFirstname.innerText = "Imię musi zaczynać się wielką literą i mieć co najmniej jedną małą literę.";
+        invalidFirstname.innerText = "Imię musi zaczynać się od wielkiej, a następnie małej litery.";
         setValidClass(firstname, isNameValid(firstname.value));
     });
 
     lastname.addEventListener("keyup", function () {
-        invalidLastname.innerText = "Imię musi zaczynać się wielką literą i mieć co najmniej jedną małą literę.";
+        invalidLastname.innerText = "Nazwisko musi zaczynać się od wielkiej, a następnie małej litery.";
         setValidClass(lastname, isNameValid(lastname.value));
     });
 }

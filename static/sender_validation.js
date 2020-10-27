@@ -5,14 +5,14 @@ const confirmPassword = document.getElementById("confirm_password");
 const login = document.getElementById("login");
 const form = document.getElementById('form');
 
-const invalidLogin = document.getElementById("invalid-login");
-const validLogin = document.getElementById("valid-login");
 const invalidFirstname = document.getElementById("invalid-firstname");
 const invalidLastname = document.getElementById("invalid-lastname");
 const invalidPassword1 = document.getElementById("invalid-password-1");
 const invalidPassword2 = document.getElementById("invalid-password-2");
+const invalidLogin = document.getElementById("invalid-login");
+const validLogin = document.getElementById("valid-login");
 
-let isLoginValid = false;
+let isLoginFieldValid = false;
 
 function setValidClass(form, isValid) {
     if (isValid) {
@@ -62,17 +62,15 @@ function checkCase(ch) {
 }
 
 function isNameValid(name) {
-    return (name.length >= 2
-        && checkCase(name[0]) == "upper"
-        && checkCase(name[1]) == "lower")
+    return (/^[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]+$/.test(name));
 }
 
 function submit(event) {
     if (!isPasswordValid
         || !isNameValid(firstname.value)
         || !isNameValid(lastname.value)
-        || !isLoginValid) {
-            
+        || !isLoginFieldValid) {
+
         event.preventDefault();
         alert("Formularz zawiera błędy.")
     }
@@ -89,16 +87,16 @@ function checkLoginAvailability() {
                 if (response[login.value] == "available") {
                     validLogin.innerText = "Wybrana nazwa użytkownika jest dostępna.";
                     setValidClass(login, true);
-                    isLoginValid = true;
+                    isLoginFieldValid = true;
                 } else {
                     invalidLogin.innerText = "Wybrana nazwa użytkownika jest zajęta.";
                     setValidClass(login, false);
-                    isLoginValid = false;
+                    isLoginFieldValid = false;
                 }
             } else {
                 invalidLogin.innerText = "Błąd komunikacji z serwerem obsługującym rejestrację.";
                 setValidClass(login, false);
-                isLoginValid = false;
+                isLoginFieldValid = false;
             }
         }
     };
@@ -114,22 +112,23 @@ function attachEvents() {
     confirmPassword.addEventListener("keyup", isPasswordValid);
 
     login.addEventListener("change", function () {
-        if (/^[a-z]+$/.test(login.value)) {
+        value = login.value;
+        if (/^[a-z]+$/.test(value) && value.length >= 3 && value.length <= 12) {
             checkLoginAvailability();
         } else {
-            invalidLogin.innerText = "Nazwa użytkownika musi zawierać tylko małe litery.";
+            invalidLogin.innerText = "Nazwa użytkownika powinna składać się z małych liter i zawierać od 3 do 12 znaków.";
             setValidClass(login, false);
-            isLoginValid = false;
+            isLoginFieldValid = false;
         }
     });
 
     firstname.addEventListener("keyup", function () {
-        invalidFirstname.innerText = "Imię musi zaczynać się od wielkiej, a następnie małej litery.";
+        invalidFirstname.innerText = "Imię musi zaczynać się od wielkiej litery i składać tylko z liter.";
         setValidClass(firstname, isNameValid(firstname.value));
     });
 
     lastname.addEventListener("keyup", function () {
-        invalidLastname.innerText = "Nazwisko musi zaczynać się od wielkiej, a następnie małej litery.";
+        invalidLastname.innerText = "Nazwisko musi zaczynać się od wielkiej litery i składać tylko z liter.";
         setValidClass(lastname, isNameValid(lastname.value));
     });
 }

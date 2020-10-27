@@ -3,6 +3,8 @@ WORKDIR /app
 
 ADD app.py .
 ADD requirements.txt .
+COPY static ./static
+COPY templates ./templates
 
 RUN python3 -m pip install -r requirements.txt
 

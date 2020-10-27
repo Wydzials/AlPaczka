@@ -48,7 +48,7 @@ function isPasswordValid() {
     } else {
         errors++;
     }
-    return errors == 0;
+    return (errors == 0);
 }
 
 function checkCase(ch) {
@@ -66,7 +66,7 @@ function isNameValid(name) {
 }
 
 function submit(event) {
-    if (!isPasswordValid
+    if (!isPasswordValid()
         || !isNameValid(firstname.value)
         || !isNameValid(lastname.value)
         || !isLoginFieldValid) {

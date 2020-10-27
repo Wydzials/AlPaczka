@@ -18,27 +18,22 @@
                     <input type="text" class="form-control" name="firstname" id="firstname" placeholder="Imię"
                         autocomplete="off" aria-describedby="invalid-firstname" required>
 
-                    <div class="invalid-feedback" id="invalid-firstname">
-                        Imię musi zaczynać się wielką literą i mieć co najmniej jedną małą literę.
-                    </div>
+                    <div class="invalid-feedback" id="invalid-firstname"></div>
                 </div>
 
                 <div class="form-group">
                     <input type="text" class="form-control" name="lastname" id="lastname" placeholder="Nazwisko"
                         autocomplete="off" aria-describedby="invalid-lastname" required>
 
-                    <div class="invalid-feedback" id="invalid-lastname">
-                        Nazwisko musi zaczynać się wielką literą i mieć co najmniej jedną małą literę.
-                    </div>
+                    <div class="invalid-feedback" id="invalid-lastname"></div>
                 </div>
 
                 <div class="form-group">
                     <input type="text" class="form-control" name="login" id="login" placeholder="Nazwa użytkownika"
                         autocomplete="off" aria-describedby="invalid-login" required>
 
-                    <div class="invalid-feedback" id="invalid-login">
-                        Nazwa użytkownika musi zawierać tylko małe litery.
-                    </div>
+                    <div class="invalid-feedback" id="invalid-login"></div>
+                    <div class="valid-feedback" id="valid-login"></div>
                 </div>
 
                 <div class="form-group">
@@ -55,19 +50,15 @@
 
                 <div class="form-group">
                     <input type="password" class="form-control" name="password" id="password" placeholder="Hasło"
-                        autocomplete="off" aria-describedby="too-short-password" required>
+                        autocomplete="off" aria-describedby="invalid-password1" required>
 
-                    <div class="invalid-feedback" id="unequal-passwords">
-                        Hasło musi mieć przynajmniej 8 znaków.
-                    </div>
+                    <div class="invalid-feedback" id="invalid-password-1"></div>
                 </div>
                 <div class="form-group">
                     <input type="password" class="form-control" id="confirm_password" placeholder="Powtórz hasło"
-                        autocomplete="off" aria-describedby="unequal-passwords" required>
+                        autocomplete="off" aria-describedby="invalid-password2" required>
 
-                    <div class="invalid-feedback" id="unequal-passwords">
-                        Hasła nie są takie same.
-                    </div>
+                    <div class="invalid-feedback" id="invalid-password-2"></div>
                 </div>
 
                 <div class="form-group">
@@ -76,9 +67,6 @@
                 </div>
 
                 <input type="submit" class="btn btn-success" name="submit" value="Zarejestruj">
-
-                <label for="password" id="passwords_dont_match" hidden>Hasła nie są takie same.</label>
-                <label for="password" id="password_too_weak" hidden>Minimalna długość hasła to 8 znaków.</label>
             </form>
         </div>
     </div>

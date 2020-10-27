@@ -1,79 +1,84 @@
 const firstname = document.getElementById("firstname");
 const lastname = document.getElementById("lastname");
 const password = document.getElementById("password");
-const confirm_password = document.getElementById("confirm_password");
+const confirmPassword = document.getElementById("confirm_password");
 const login = document.getElementById("login");
 const form = document.getElementById('form');
-const invalid_login = document.getElementById("invalid-login");
+
+const invalidLogin = document.getElementById("invalid-login");
+const validLogin = document.getElementById("valid-login");
+const invalidFirstname = document.getElementById("invalid-firstname");
+const invalidLastname = document.getElementById("invalid-lastname");
+const invalidPassword1 = document.getElementById("invalid-password-1");
+const invalidPassword2 = document.getElementById("invalid-password-2");
 
 let isLoginValid = false;
 
-function setValid(form) {
-    form.classList.remove("is-invalid")
-    form.classList.add("is-valid");
+function setValidClass(form, isValid) {
+    if (isValid) {
+        form.classList.remove("is-invalid")
+        form.classList.add("is-valid");
+    } else {
+        form.classList.remove("is-valid");
+        form.classList.add("is-invalid");
+    }
 }
 
-function setInvalid(form) {
-    form.classList.remove("is-valid");
-    form.classList.add("is-invalid");
-}
-
-
-function checkPassword() {
+function isPasswordValid() {
     password1 = password.value;
-    password2 = confirm_password.value;
+    password2 = confirmPassword.value;
 
     errors = 0;
     if (password1.length > 0 && password2.length > 0) {
         if (password1.length >= 8) {
-            setValid(password);
+            setValidClass(password, true);
         } else {
-            setInvalid(password);
+            invalidPassword1.innerText = "Hasło musi mieć przynajmniej 8 znaków.";
+            setValidClass(password, false);
             errors++;
         }
 
         if (password1 == password2) {
-            setValid(confirm_password);
+            setValidClass(confirmPassword, true);
         } else {
-            setInvalid(confirm_password);
+            invalidPassword2.innerText = "Hasła nie są takie same.";
+            setValidClass(confirmPassword, false);
             errors++;
         }
     } else {
         errors++;
     }
-    return errors;
+    return errors == 0;
 }
 
 function checkCase(ch) {
     if (!isNaN(ch * 1)) {
         return "numeric";
-    }
-    else if (ch == ch.toUpperCase()) {
+    } else if (ch == ch.toUpperCase()) {
         return "upper";
-    }
-    else if (ch == ch.toLowerCase()) {
+    } else if (ch == ch.toLowerCase()) {
         return "lower";
     }
 }
 
-function checkName(name) {
-    if (name.length >= 2 && checkCase(name[0]) == "upper" && checkCase(name[1]) == "lower") {
-        return 0;
-    } else {
-        return 1;
-    }
+function isNameValid(name) {
+    return (name.length >= 2
+        && checkCase(name[0]) == "upper"
+        && checkCase(name[1]) == "lower")
 }
 
 function submit(event) {
-    errors = checkPassword() + checkName(firstname.value) + checkName(lastname.value);
-
-    if (errors > 0 || isLoginValid == false) {
+    if (!isPasswordValid
+        || !isNameValid(firstname.value)
+        || !isNameValid(lastname.value)
+        || !isLoginValid) {
+            
         event.preventDefault();
         alert("Formularz zawiera błędy.")
     }
 }
 
-function ajaxLoginCheck() {
+function checkLoginAvailability() {
     const xhttp = new XMLHttpRequest();
 
     xhttp.onreadystatechange = function () {
@@ -82,17 +87,17 @@ function ajaxLoginCheck() {
                 const response = JSON.parse(this.responseText);
 
                 if (response[login.value] == "available") {
-                    setValid(login);
-                    console.log(response[login.value]);
+                    validLogin.innerText = "Wybrana nazwa użytkownika jest dostępna.";
+                    setValidClass(login, true);
                     isLoginValid = true;
                 } else {
-                    invalid_login.innerText = "Wybrana nazwa użytkownika jest zajęta.";
-                    setInvalid(login);
+                    invalidLogin.innerText = "Wybrana nazwa użytkownika jest zajęta.";
+                    setValidClass(login, false);
                     isLoginValid = false;
                 }
             } else {
-                invalid_login.innerText = "Błąd komunikacji z serwerem obsługującym rejestrację.";
-                setInvalid(login);
+                invalidLogin.innerText = "Błąd komunikacji z serwerem obsługującym rejestrację.";
+                setValidClass(login, false);
                 isLoginValid = false;
             }
         }
@@ -105,34 +110,28 @@ function ajaxLoginCheck() {
 function attachEvents() {
     form.onsubmit = submit;
 
+    password.addEventListener("keyup", isPasswordValid);
+    confirmPassword.addEventListener("keyup", isPasswordValid);
+
     login.addEventListener("change", function () {
         if (/^[a-z]+$/.test(login.value)) {
-            ajaxLoginCheck();
+            checkLoginAvailability();
         } else {
-            invalid_login.innerText = "Nazwa użytkownika musi zawierać tylko małe litery.";
-            setInvalid(login);
+            invalidLogin.innerText = "Nazwa użytkownika musi zawierać tylko małe litery.";
+            setValidClass(login, false);
             isLoginValid = false;
         }
     });
 
     firstname.addEventListener("keyup", function () {
-        if (checkName(firstname.value) == 0) {
-            setValid(firstname);
-        } else {
-            setInvalid(firstname);
-        }
+        invalidFirstname.innerText = "Imię musi zaczynać się wielką literą i mieć co najmniej jedną małą literę.";
+        setValidClass(firstname, isNameValid(firstname.value));
     });
 
     lastname.addEventListener("keyup", function () {
-        if (checkName(lastname.value) == 0) {
-            setValid(lastname);
-        } else {
-            setInvalid(lastname);
-        }
+        invalidLastname.innerText = "Imię musi zaczynać się wielką literą i mieć co najmniej jedną małą literę.";
+        setValidClass(lastname, isNameValid(lastname.value));
     });
-
-    password.addEventListener("keyup", checkPassword);
-    confirm_password.addEventListener("keyup", checkPassword);
 }
 
 attachEvents()

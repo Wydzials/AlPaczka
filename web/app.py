@@ -48,15 +48,15 @@ def sender_register():
     for name in field_names:
         fields[name] = request.form.get(name)
         if not fields[name]:
-            flash(f"Nie podano {empty_errors[name]}!")
+            flash(f"Nie podano {empty_errors[name]}!", "danger")
             correct = False
 
     if fields["password"] != fields["password2"]:
-        flash("Hasła nie są takie same!")
+        flash("Hasła nie są takie same!", "danger")
         correct = False
     
     if fields["username"] and db.hexists(f"user:{fields['username']}", "password"):
-        flash("Nazwa użytkownika jest zajęta!")
+        flash("Nazwa użytkownika jest zajęta!", "danger")
         correct = False
 
 
@@ -72,7 +72,7 @@ def sender_register():
     hashed = hashpw(password, gensalt(5))
     db.hset(f"user:{fields['username']}", "password", hashed)
 
-    flash("Pomyślnie zarejestrowano konto nadawcy.")
+    flash("Pomyślnie zarejestrowano konto nadawcy.", "success")
     return redirect(url_for("index"))
 
 
@@ -85,32 +85,32 @@ def sender_login():
     password = request.form.get("password")
 
     if not username:
-        flash("Nazwa użytkownika nie może być pusta.")
+        flash("Nazwa użytkownika nie może być pusta.", "danger")
         return redirect(url_for("sender_login"))
 
     if not password:
-        flash("Hasło nie może być puste.")
+        flash("Hasło nie może być puste.", "danger")
         return redirect(url_for("sender_login"))
 
     db_password = db.hget(f"user:{username}", "password")
 
     if not db_password:
-        flash("Nie znaleziono użytkownika o podanej nazwie.")
+        flash("Nie znaleziono użytkownika o podanej nazwie.", "danger")
         return redirect(url_for("sender_login"))
     
     if not checkpw(password.encode(), db_password):
-        flash("Nieprawidłowe hasło.")
+        flash("Nieprawidłowe hasło.", "danger")
         return redirect(url_for("sender_login"))
     
     session["username"] = username
     session["logged-at"] = datetime.now()
-    flash("Zalogowano na konto nadawcy.")
+    flash("Zalogowano na konto nadawcy.", "success")
     return redirect(url_for("index"))
 
 @app.route("/sender/logout")
 def sender_logout():
     session.clear()
-    flash("Wylogowano pomyślnie.")
+    flash("Wylogowano pomyślnie.", "success")
     return redirect(url_for("index"))
 
 if __name__ == "__main__":

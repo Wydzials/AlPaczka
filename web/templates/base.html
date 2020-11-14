@@ -21,7 +21,6 @@
 <body>
     <header>
         <div class="container">
-
             <nav class="navbar navbar-expand navbar-dark">
                 <a class="navbar-brand" href="{{ url_for('index') }}">
                     <img src="{{ url_for('static', filename='alpaca.ico') }}" alt="Logo" class="logo">
@@ -48,7 +47,7 @@
         </div>
     </header>
 
-    <div class="container main">
+    <main role="main" class="container main">
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         <div class="row justify-content-center">
@@ -68,13 +67,11 @@
         {% endwith %}
 
         {% block body %}{% endblock %}
-    </div>
+    </main>
 
-    <div class="container fixed-bottom">
-        <footer class="footer text-light">
-            <p>2020 <a class="text-light" href="https://github.com/Wydzials/AlPaczka">Link do repozytorium</a></p>
-        </footer>
-    </div>
+    <footer class="footer container text-light">
+        <p>2020 <a class="text-light" href="https://github.com/Wydzials/AlPaczka">Link do repozytorium</a></p>
+    </footer>
 </body>
 
 </html>

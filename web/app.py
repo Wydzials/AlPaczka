@@ -114,7 +114,7 @@ def sender_login():
     session["username"] = username
     session["logged-at"] = datetime.now()
     flash("Zalogowano na konto nadawcy.", "success")
-    return redirect(url_for("index"))
+    return redirect(url_for("sender_dashboard"))
 
 @app.route("/sender/logout")
 def sender_logout():
@@ -135,9 +135,8 @@ def sender_dashboard():
             byte_package = db.hgetall(name).items()
             package = {key.decode(): value.decode() for key, value in byte_package}
             package["size"] = package_sizes[int(package["size"])]
+            package["id"] = name.decode().replace("package:", "")
             packages.append(package)
-        
-        print(packages)
 
         return render_template("sender_dashboard.html", packages=packages, sizes=package_sizes)
     
@@ -164,7 +163,13 @@ def sender_dashboard():
 
     db.sadd(f"user_packages:{g.username}", f"package:{id}")
 
-    flash("Etykieta paczki została zapisana.", "success")
+    return redirect(url_for("sender_dashboard"))
+
+
+@app.route("/package/delete/<id>")
+def delete_package(id):
+    db.srem(f"user_packages:{g.username}", f"package:{id}")
+    db.delete(f"package:{id}")
     return redirect(url_for("sender_dashboard"))
 
 

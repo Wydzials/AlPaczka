@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+
+{% block body %}
+<div class="row">
+    
+    <div class="col-8">
+        <h3>Zapisane etykiety paczek</h3>
+        <table class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>Adresat</th>
+                    <th>Numer skrytki</th>
+                    <th>Rozmiar paczki</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for package in packages %}
+                    <tr>
+                        <td>{{ package["recipient"] }}</td>
+                        <td>{{ package["box_id"] }}</td>
+                        <td>{{ package["size"] }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="col-4">
+        <h3>Dodaj etykietę paczki</h3>
+
+        <form method="POST" action="/sender/dashboard" id="form">
+            <div class="form-group">
+                <label for="recipient">Nazwa adresata</label>
+                <input type="text" class="form-control" name="recipient" id="recipient" placeholder="Podaj nazwę adresata">
+            </div>
+
+            <div class="form-group">
+                <label for="box-id">Numer skrytki</label>
+                <input type="number" min="1" class="form-control" name="box-id" id="box-id" placeholder="Podaj numer skrytki">
+            </div>
+
+            <div class="form-group">
+                <label for="size">Rozmiar paczki</label>
+                <select name="size" id="size" class="form-control">
+                    {% for id, name in sizes.items() %}
+                    <option value="{{ id }}">{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-success">Dodaj etykietę paczki</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

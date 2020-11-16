@@ -33,7 +33,12 @@
 
                 <ul class="navbar-nav">
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Strona główna</a></li>
+                    
+                    {% if session["username"] %}
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('sender_dashboard') }}">Kokpit</a></li>
+                    {% else %}
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('sender_register') }}">Rejestracja nadawcy</a></li>
+                    {% endif %}
                 </ul>
 
                 <ul class="navbar-nav ml-auto">

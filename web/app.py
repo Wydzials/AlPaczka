@@ -1,25 +1,32 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, g
 from flask_session import Session
 
-from redis import Redis
+from redis import Redis, StrictRedis
 from os import getenv
 from dotenv import load_dotenv
 from bcrypt import hashpw, gensalt, checkpw
 from datetime import datetime
+from uuid import uuid4
+import re
 
+
+app = Flask(__name__)
+load_dotenv()
 
 db = Redis(host="redis", port=6379, db=0)
-load_dotenv()
 
 SESSION_TYPE = "redis"
 SESSION_REDIS = db
-PERMANENT_SESSION_LIFETIME = 120
+PERMANENT_SESSION_LIFETIME = 600
 SESSION_COOKIE_HTTPONLY = True
+SECRET_KEY = getenv("SECRET_KEY")
 
-app = Flask(__name__)
 app.config.from_object(__name__)
-app.secret_key=getenv("SECRET_KEY")
 ses = Session(app)
+
+@app.before_request
+def before_request():
+    g.username = session.get("username")
 
 @app.route("/")
 def index():
@@ -35,30 +42,33 @@ def sender_register():
         return render_template("sender_register.html")
 
     field_names = ["username", "firstname", "lastname", "email", "address", "password", "password2"]
-    empty_errors = {"username": "nazwy użytkownika",
-                    "firstname": "imienia",
-                    "lastname": "nazwiska",
-                    "email": "adresu email",
-                    "address": "adresu",
-                    "password": "hasła",
-                    "password2": "potwierdzenia hasła"}
+    errors = {"username": "nazwy użytkownika",
+              "firstname": "imienia",
+              "lastname": "nazwiska",
+              "email": "adresu email",
+              "address": "adresu",
+              "password": "hasła",
+              "password2": "potwierdzenia hasła"}
     fields = {}
     correct = True
 
     for name in field_names:
         fields[name] = request.form.get(name)
         if not fields[name]:
-            flash(f"Nie podano {empty_errors[name]}!", "danger")
+            flash(f"Nie podano {errors[name]}.", "danger")
             correct = False
 
     if fields["password"] != fields["password2"]:
-        flash("Hasła nie są takie same!", "danger")
+        flash("Hasła nie są takie same.", "danger")
+        correct = False
+    
+    if fields["username"] and not re.fullmatch(r'^[a-z]{3,20}', fields["username"]):
+        flash("Nazwa użytkownika musi składać się z 3-20 małych liter.", "danger")
         correct = False
     
     if fields["username"] and db.hexists(f"user:{fields['username']}", "password"):
-        flash("Nazwa użytkownika jest zajęta!", "danger")
+        flash("Nazwa użytkownika jest zajęta.", "danger")
         correct = False
-
 
     if not correct:
         return redirect(url_for("sender_register"))
@@ -74,7 +84,6 @@ def sender_register():
 
     flash("Pomyślnie zarejestrowano konto nadawcy.", "success")
     return redirect(url_for("index"))
-
 
 @app.route("/sender/login", methods=["GET", "POST"])
 def sender_login():
@@ -112,6 +121,52 @@ def sender_logout():
     session.clear()
     flash("Wylogowano pomyślnie.", "success")
     return redirect(url_for("index"))
+
+
+@app.route("/sender/dashboard", methods=["GET", "POST"])
+def sender_dashboard():
+    if request.method == "GET":
+        package_sizes = {1: "Mały", 2: "Średni", 3: "Duży"}
+
+        package_names = db.smembers(f"user_packages:{g.username}")
+
+        packages = []
+        for name in package_names:
+            byte_package = db.hgetall(name).items()
+            package = {key.decode(): value.decode() for key, value in byte_package}
+            package["size"] = package_sizes[int(package["size"])]
+            packages.append(package)
+        
+        print(packages)
+
+        return render_template("sender_dashboard.html", packages=packages, sizes=package_sizes)
+    
+    recipient = request.form.get("recipient")
+    box_id = request.form.get("box-id")
+    size = request.form.get("size")
+
+    if not recipient:
+        flash("Nazwa odbiorcy nie może być pusta.", "danger")
+        return redirect(url_for("sender_dashboard"))
+    
+    if not box_id:
+        flash("Identyfikator skrytki nie może być pusty.", "danger")
+        return redirect(url_for("sender_dashboard"))
+
+    if not size:
+        flash("Rozmiar nie może być pusty.", "danger")
+        return redirect(url_for("sender_dashboard"))
+    
+    id = uuid4()
+    db.hset(f"package:{id}", "recipient", recipient)
+    db.hset(f"package:{id}", "box_id", box_id)
+    db.hset(f"package:{id}", "size", size)
+
+    db.sadd(f"user_packages:{g.username}", f"package:{id}")
+
+    flash("Etykieta paczki została zapisana.", "success")
+    return redirect(url_for("sender_dashboard"))
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True)

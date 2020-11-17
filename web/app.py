@@ -32,10 +32,6 @@ def before_request():
 def index():
     return render_template("index.html")
 
-@app.route("/sender/sign-up")
-def sender_sign_up():
-    return render_template("sender_sign_up.html")
-
 @app.route("/sender/register", methods=["GET", "POST"])
 def sender_register():
     if request.method == "GET":
@@ -125,6 +121,9 @@ def sender_logout():
 
 @app.route("/sender/dashboard", methods=["GET", "POST"])
 def sender_dashboard():
+    if not g.username:
+        return redirect(url_for("index"))
+
     if request.method == "GET":
         package_sizes = {1: "Mały", 2: "Średni", 3: "Duży"}
 
@@ -138,6 +137,8 @@ def sender_dashboard():
             package["id"] = name.decode().replace("package:", "")
             packages.append(package)
 
+        packages = sorted(packages, key=lambda k: int(k["box_id"]))
+
         return render_template("sender_dashboard.html", packages=packages, sizes=package_sizes)
     
     recipient = request.form.get("recipient")
@@ -145,7 +146,7 @@ def sender_dashboard():
     size = request.form.get("size")
 
     if not recipient:
-        flash("Nazwa odbiorcy nie może być pusta.", "danger")
+        flash("Nazwa adresata nie może być pusta.", "danger")
         return redirect(url_for("sender_dashboard"))
     
     if not box_id:
@@ -165,12 +166,17 @@ def sender_dashboard():
 
     return redirect(url_for("sender_dashboard"))
 
+def is_package_sender(sender, package_id):
+    return db.sismember(f"user_packages:{sender}", f"package:{package_id}")
 
 @app.route("/package/delete/<id>")
 def delete_package(id):
-    db.srem(f"user_packages:{g.username}", f"package:{id}")
-    db.delete(f"package:{id}")
-    return redirect(url_for("sender_dashboard"))
+    if is_package_sender(g.username, id):
+        db.srem(f"user_packages:{g.username}", f"package:{id}")
+        db.delete(f"package:{id}")
+        return redirect(url_for("sender_dashboard"))
+    else:
+        return "Brak dostępu", 401
 
 
 if __name__ == "__main__":

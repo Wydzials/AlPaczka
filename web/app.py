@@ -2,25 +2,24 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from flask_session import Session
 
 from redis import Redis, StrictRedis
-from os import getenv
 from dotenv import load_dotenv
 from bcrypt import hashpw, gensalt, checkpw
 from datetime import datetime
 from uuid import uuid4
-import re
+import re, os
 
 
 app = Flask(__name__)
 load_dotenv()
 
-url = getenv('REDIS_URL')
+url = os.environ.get("REDIS_URL")
 db = Redis.from_url(url) if url else Redis(host="redis")
 
 SESSION_TYPE = "filesystem"
 SESSION_REDIS = db
 PERMANENT_SESSION_LIFETIME = 600
 SESSION_COOKIE_HTTPONLY = True
-SECRET_KEY = getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 app.config.from_object(__name__)
 ses = Session(app)

@@ -13,9 +13,10 @@ import re
 app = Flask(__name__)
 load_dotenv()
 
-db = Redis(host="redis", port=6379, db=0)
+url = getenv('REDIS_URL')
+db = Redis.from_url(url) if url else Redis(host="redis")
 
-SESSION_TYPE = "redis"
+SESSION_TYPE = "filesystem"
 SESSION_REDIS = db
 PERMANENT_SESSION_LIFETIME = 600
 SESSION_COOKIE_HTTPONLY = True
@@ -23,6 +24,16 @@ SECRET_KEY = getenv("SECRET_KEY")
 
 app.config.from_object(__name__)
 ses = Session(app)
+
+@app.errorhandler(500)
+def internal_error(error):
+    message = "Nieznany błąd serwera."
+    try:
+        db.ping()
+    except:
+        message = "Błąd połączenia z bazą danych."
+        
+    return render_template("error.html", error_message=message)
 
 @app.before_request
 def before_request():
@@ -47,6 +58,7 @@ def sender_register():
               "password2": "potwierdzenia hasła"}
     fields = {}
     correct = True
+    session.pop('_flashes', None)
 
     for name in field_names:
         fields[name] = request.form.get(name)
@@ -88,6 +100,8 @@ def sender_login():
     
     username = request.form.get("username")
     password = request.form.get("password")
+
+    session.pop('_flashes', None)
 
     if not username:
         flash("Nazwa użytkownika nie może być pusta.", "danger")
@@ -144,6 +158,8 @@ def sender_dashboard():
     recipient = request.form.get("recipient")
     box_id = request.form.get("box-id")
     size = request.form.get("size")
+
+    session.pop('_flashes', None)
 
     if not recipient:
         flash("Nazwa adresata nie może być pusta.", "danger")

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+
+{% block body %}
+<div class="row justify-content-center">
+    <div class="col-7">
+        <img src="{{ url_for('static', filename='error.jpeg') }}" alt="Błąd" class="img-fluid">
+
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading">{{ error_message }}</h4>
+            Coś poszło nie tak. Możesz wrócić na
+            <a href="{{ url_for('index') }}" class="alert-link">stronę główną</a>.
+        </div>
+    </div>
+</div>
+{% endblock %}

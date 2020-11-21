@@ -12,11 +12,13 @@ import re, os
 app = Flask(__name__)
 load_dotenv()
 
-url = os.environ.get("REDIS_URL")
-db = Redis.from_url(url) if url else Redis(host="redis")
+cloud_url = os.environ.get("REDIS_URL")
+db = Redis.from_url(cloud_url) if cloud_url else Redis(host="redis")
+
+if cloud_url:
+    SESSION_COOKIE_SECURE = True
 
 SESSION_TYPE = "filesystem"
-SESSION_REDIS = db
 PERMANENT_SESSION_LIFETIME = 600
 SESSION_COOKIE_HTTPONLY = True
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -195,4 +197,4 @@ def delete_package(id):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", debug=True)
+    app.run(host="0.0.0.0", debug=False)

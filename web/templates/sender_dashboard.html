@@ -19,16 +19,16 @@
 
             <tbody>
                 {% for package in packages %}
-                    <tr>
-                        <td>{{ package["recipient"] }}</td>
-                        <td>{{ package["box_id"] }}</td>
-                        <td>{{ package["size"] }}</td>
-                        <td>
-                            <a href="/package/delete/{{ package['id'] }}">
-                                <img src="{{ url_for('static', filename='trash.svg') }}">
-                            </a>
-                        </td>
-                    </tr>
+                <tr>
+                    <td>{{ package["recipient"] }}</td>
+                    <td>{{ package["box_id"] }}</td>
+                    <td>{{ package["size"] }}</td>
+                    <td>
+                        <a href="/package/delete/{{ package['id'] }}">
+                            <img src="{{ url_for('static', filename='trash.svg') }}">
+                        </a>
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -36,7 +36,7 @@
         <div class="alert alert-success col-8" role="alert">
             <h4 class="alert-heading">Twoja lista paczek jest pusta!</h4>
             Możesz dodać nową etykietę paczki używając formularza po prawej stronie.
-          </div>
+        </div>
         {% endif %}
     </div>
 
@@ -67,5 +67,4 @@
         </form>
     </div>
 </div>
-
 {% endblock %}

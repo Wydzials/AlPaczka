@@ -1,34 +1,22 @@
 {% extends "base.html" %}
 
 
-{% block head %}
-<!-- <script src="{{ url_for('static', filename='sender_validation.js') }}" defer></script> -->
-{% endblock %}
-
 {% block body %}
-
 <div class="row justify-content-center">
     <div class="col-4">
         <h3>Rejestracja nadawcy</h3>
-        <form class="needs-validation" method="POST" id="form" action="{{ url_for('sender_register') }}" enctype="multipart/form-data">
+        <form method="POST" id="form" action="{{ url_for('sender_register') }}" enctype="multipart/form-data">
 
             <div class="form-group">
                 <input type="text" class="form-control" name="firstname" id="firstname" placeholder="Imię" autocomplete="off" aria-describedby="invalid-firstname">
-
-                <div class="invalid-feedback" id="invalid-firstname"></div>
             </div>
 
             <div class="form-group">
                 <input type="text" class="form-control" name="lastname" id="lastname" placeholder="Nazwisko" autocomplete="off" aria-describedby="invalid-lastname">
-
-                <div class="invalid-feedback" id="invalid-lastname"></div>
             </div>
 
             <div class="form-group">
                 <input type="text" class="form-control" name="username" id="username" placeholder="Nazwa użytkownika" autocomplete="off" aria-describedby="invalid-username">
-
-                <div class="invalid-feedback" id="invalid-username"></div>
-                <div class="valid-feedback" id="valid-username"></div>
             </div>
 
             <div class="form-group">
@@ -39,28 +27,20 @@
                 <div class="row">
                     <div class="col">
                         <input type="password" class="form-control" name="password" id="password" placeholder="Hasło" autocomplete="off" aria-describedby="invalid-password-1">
-
-                        <div class="invalid-feedback" id="invalid-password-1"></div>
                     </div>
 
                     <div class="col">
                         <input type="password" class="form-control" name="password2" id="password2" placeholder="Powtórz hasło" autocomplete="off" aria-describedby="invalid-password-2">
-
-                        <div class="invalid-feedback" id="invalid-password-2"></div>
                     </div>
                 </div>
             </div>
 
             <div class="form-group">
                 <input type="text" class="form-control" name="address" id="address" placeholder="Adres" autocomplete="off" aria-describedby="invalid-address">
-
-                <div class="invalid-feedback" id="invalid-address"></div>
             </div>
 
             <input type="submit" class="btn btn-success" name="submit" value="Zarejestruj">
         </form>
     </div>
 </div>
-
-
 {% endblock %}

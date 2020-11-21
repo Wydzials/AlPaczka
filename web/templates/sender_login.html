@@ -2,7 +2,6 @@
 
 
 {% block body %}
-
 <div class="row justify-content-center">
     <div class="col-4">
         <h3>Logowanie nadawcy</h3>
@@ -10,22 +9,14 @@
 
             <div class="form-group">
                 <input type="text" class="form-control" name="username" id="username" placeholder="Nazwa użytkownika" autocomplete="off" aria-describedby="invalid-username">
-
-                <div class="invalid-feedback" id="invalid-username"></div>
-                <div class="valid-feedback" id="valid-username"></div>
             </div>
 
             <div class="form-group">
                 <input type="password" class="form-control" name="password" id="password" placeholder="Hasło" autocomplete="off" aria-describedby="invalid-password-1">
-
-                <div class="invalid-feedback" id="invalid-password-1"></div>
             </div>
 
             <input type="submit" class="btn btn-success" name="submit" value="Zaloguj">
         </form>
     </div>
 </div>
-
-
-
 {% endblock %}

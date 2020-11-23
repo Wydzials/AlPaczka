@@ -11,6 +11,7 @@ echo "SECRET_KEY='[paste your key here]'" > .env
 
 Then run application with `docker-compose`:
 ```
+docker-compose build
 docker-compose up
 ```
 

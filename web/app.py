@@ -6,8 +6,7 @@ from dotenv import load_dotenv
 from bcrypt import hashpw, gensalt, checkpw
 from datetime import datetime
 from uuid import uuid4
-import re, os
-import requests
+import re, os, requests
 
 
 app = Flask(__name__)
@@ -26,8 +25,8 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 app.config.from_object(__name__)
 ses = Session(app)
+API_URL = os.getenv("API_URL")
 
-api = "http://api:8000"
 
 @app.errorhandler(500)
 def internal_error(error):
@@ -114,7 +113,7 @@ def sender_login():
         flash("Hasło nie może być puste.", "danger")
         return redirect(url_for("sender_login"))
 
-    r = requests.post(api + "/login", json={"username": username, "password": password})
+    r = requests.get(API_URL + "/login", json={"username": username, "password": password})
     json = r.json()
     print(json, flush=True)
 
@@ -150,44 +149,30 @@ def sender_dashboard():
     if request.method == "GET":
         package_sizes = {1: "Mały", 2: "Średni", 3: "Duży"}
 
-        package_names = db.smembers(f"user_packages:{g.username}")
-
-        packages = []
-        for name in package_names:
-            byte_package = db.hgetall(name).items()
-            package = {key.decode(): value.decode() for key, value in byte_package}
-            package["size"] = package_sizes[int(package["size"])]
-            package["id"] = name.decode().replace("package:", "")
-            packages.append(package)
-
-        packages = sorted(packages, key=lambda k: int(k["box_id"]))
+        r = requests.get(API_URL + "/sender/" + g.username + "/packages")
+        packages = r.json().get("packages")
 
         return render_template("sender_dashboard.html", packages=packages, sizes=package_sizes)
     
-    recipient = request.form.get("recipient")
-    box_id = request.form.get("box-id")
-    size = request.form.get("size")
-
     session.pop('_flashes', None)
+    package = {"recipient": request.form.get("recipient"),
+            "box_id": request.form.get("box-id"),
+            "size": request.form.get("size")}
 
-    if not recipient:
+    if not package["recipient"]:
         flash("Nazwa adresata nie może być pusta.", "danger")
         return redirect(url_for("sender_dashboard"))
     
-    if not box_id:
+    if not package["box_id"]:
         flash("Identyfikator skrytki nie może być pusty.", "danger")
         return redirect(url_for("sender_dashboard"))
 
-    if not size:
+    if not package["size"]:
         flash("Rozmiar nie może być pusty.", "danger")
         return redirect(url_for("sender_dashboard"))
     
-    id = uuid4()
-    db.hset(f"package:{id}", "recipient", recipient)
-    db.hset(f"package:{id}", "box_id", box_id)
-    db.hset(f"package:{id}", "size", size)
-
-    db.sadd(f"user_packages:{g.username}", f"package:{id}")
+    r = requests.post(API_URL + "/sender/" + g.username + "/packages", json=package)
+    print(r.json(), flush=True)
 
     return redirect(url_for("sender_dashboard"))
 

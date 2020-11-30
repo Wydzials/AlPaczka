@@ -22,7 +22,7 @@
                 <tr>
                     <td>{{ package["recipient"] }}</td>
                     <td>{{ package["box_id"] }}</td>
-                    <td>{{ package["size"] }}</td>
+                    <td>{{ sizes.get(package["size"]|int) }}</td>
                     <td>
                         <a href="/package/delete/{{ package['id'] }}">
                             <img src="{{ url_for('static', filename='trash.svg') }}">

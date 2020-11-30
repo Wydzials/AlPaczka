@@ -1,12 +1,13 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, g
 from flask_session import Session
 
-from redis import Redis, StrictRedis
+from redis import Redis
 from dotenv import load_dotenv
 from bcrypt import hashpw, gensalt, checkpw
 from datetime import datetime
 from uuid import uuid4
 import re, os
+import requests
 
 
 app = Flask(__name__)
@@ -25,6 +26,8 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 app.config.from_object(__name__)
 ses = Session(app)
+
+api = "http://api:8000"
 
 @app.errorhandler(500)
 def internal_error(error):
@@ -99,33 +102,38 @@ def sender_login():
     if request.method == "GET":
         return render_template("sender_login.html")
     
+    session.pop('_flashes', None)
+
     username = request.form.get("username")
     password = request.form.get("password")
-
-    session.pop('_flashes', None)
 
     if not username:
         flash("Nazwa użytkownika nie może być pusta.", "danger")
         return redirect(url_for("sender_login"))
-
     if not password:
         flash("Hasło nie może być puste.", "danger")
         return redirect(url_for("sender_login"))
 
-    db_password = db.hget(f"user:{username}", "password")
+    r = requests.post(api + "/login", json={"username": username, "password": password})
+    json = r.json()
+    print(json, flush=True)
 
-    if not db_password:
+    if json.get("status") == "logged-in":
+        session["username"] = username
+        session["logged-at"] = datetime.now()
+        flash("Zalogowano na konto nadawcy.", "success")
+        return redirect(url_for("sender_dashboard"))
+
+    if json.get("error") == "Invalid username":
         flash("Nie znaleziono użytkownika o podanej nazwie.", "danger")
         return redirect(url_for("sender_login"))
-    
-    if not checkpw(password.encode(), db_password):
+
+    if json.get("error") == "Invalid password":
         flash("Nieprawidłowe hasło.", "danger")
         return redirect(url_for("sender_login"))
     
-    session["username"] = username
-    session["logged-at"] = datetime.now()
-    flash("Zalogowano na konto nadawcy.", "success")
-    return redirect(url_for("sender_dashboard"))
+    flash("Nieznany błąd", "danger")
+    return redirect(url_for("sender_login"))
 
 @app.route("/sender/logout")
 def sender_logout():
@@ -197,4 +205,4 @@ def delete_package(id):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", debug=False)
+    app.run(host="0.0.0.0", debug=True)

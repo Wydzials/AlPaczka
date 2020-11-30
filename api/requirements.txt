@@ -1,0 +1,6 @@
+Flask
+gunicorn
+python-dotenv
+redis
+bcrypt
+pyjwt

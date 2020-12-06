@@ -18,10 +18,8 @@ db = Redis.from_url(cloud_url) if cloud_url else Redis(host="redis", decode_resp
 JWT_SECRET = os.getenv("JWT_SECRET")
 app.config.from_object(__name__)
 
-
 @app.route("/login", methods=["GET"])
 def login():
-    print(request.json, flush=True)
     json = request.json
 
     if not json:
@@ -29,14 +27,25 @@ def login():
 
     username = json.get("username")
     password = json.get("password")
-
     db_password = db.hget(f"user:{username}", "password")
 
-    if not db_password:
-        return {"error": "Invalid username"}, 400
-    if not checkpw(password.encode(), db_password.encode()):
-        return {"error": "Invalid password"}, 400
+    if not username:
+        return {"error": "No username provided", 
+                "error_pl": "Nazwa użytkownika nie może być pusta."}, 400
 
+    if not password:
+        return {"error": "No password provided", 
+                "error_pl": "Hasło nie może być puste."}, 400
+
+    if not db_password:
+        return {"error": "Invalid username", 
+                "error_pl": "Nieprawidłowa nazwa użytkownika."}, 400
+
+    if not checkpw(password.encode(), db_password.encode()):
+        return {"error": "Invalid password", 
+                "error_pl": "Nieprawidłowe hasło."}, 400
+
+    log("Logged in user " + username)
     return {"status": "logged-in"}, 200
 
 @app.route("/sender/<username>/packages", methods=["GET"])
@@ -56,14 +65,28 @@ def get_sender_packages(username):
 def add_sender_package(username):
     package = request.json
 
+    if not package["recipient"]:
+        return error("No recipient provided", "Nazwa adresata nie może być pusta.")
+    
+    if not package["box_id"]:
+        return error("No box_id provided", "Numer skrytki nie może być pusty.")
+    
+    try:
+        box_id = int(package["box_id"])
+    except ValueError:
+        return error("Invalid box_id", "Nieprawidłowy numer skrytki.")
+
+    if not package["size"]:
+        return error("No size provided", "Rozmiar nie może być pusty.")
+
     id = uuid4()
     db.hset(f"package:{id}", "recipient", package["recipient"])
-    db.hset(f"package:{id}", "box_id", package["box_id"])
+    db.hset(f"package:{id}", "box_id", box_id)
     db.hset(f"package:{id}", "size", package["size"])
     db.hset(f"package:{id}", "status", "label")
     db.sadd(f"user_packages:{username}", f"package:{id}")
 
-    print("Created package: " + str(db.hgetall(f"package:{id}")) + " from sender " + username, flush=True)
+    log("Created package: " + str(db.hgetall(f"package:{id}")) + " from sender " + username)
     return json.dumps(db.hgetall(f"package:{id}")), 200
 
 @app.route("/sender/<username>/packages/<id>", methods=["DELETE"])
@@ -71,20 +94,27 @@ def delete_sender_package(username, id):
     is_package_sender = db.sismember(f"user_packages:{username}", f"package:{id}")
 
     if not db.hget(f"package:{id}", "recipient"):
-        return {"error": "Not found"}, 400
+        return error("Package not found", "Nie znaleziono paczki")
 
     if not is_package_sender:
-        return {"error": "Unauthorized"}, 401
-    
+        return error("Unauthorized", "Brak dostępu", 401)
+
     if not db.hget(f"package:{id}", "status") == "label":
-        return {"error": "Package in transit cannot be deleted"}, 400
+        return error("Package in transit cannot be deleted", "Nie można usunąć, paczka jest już w drodze.")
 
     db.srem(f"user_packages:{username}", f"package:{id}")
     db.delete(f"package:{id}")
 
-    print("Deleted package: " + id + " from sender: " + username, flush=True)
-    return "ok", 200
+    log("Deleted package: " + id + " from sender: " + username)
+    return {"status": "ok"}, 200
 
+
+def error(error, error_pl, code=400):
+    return {"error": error, "error_pl": error_pl}, code
+
+def log(message):
+    time = "INFO [" + str(datetime.now()) + "]"
+    print(time + ": " + message, flush=True)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True)

@@ -96,6 +96,7 @@ def sender_register():
     flash("Pomyślnie zarejestrowano konto nadawcy.", "success")
     return redirect(url_for("index"))
 
+
 @app.route("/sender/login", methods=["GET", "POST"])
 def sender_login():
     if request.method == "GET":
@@ -106,16 +107,8 @@ def sender_login():
     username = request.form.get("username")
     password = request.form.get("password")
 
-    if not username:
-        flash("Nazwa użytkownika nie może być pusta.", "danger")
-        return redirect(url_for("sender_login"))
-    if not password:
-        flash("Hasło nie może być puste.", "danger")
-        return redirect(url_for("sender_login"))
-
     r = requests.get(API_URL + "/login", json={"username": username, "password": password})
     json = r.json()
-    print(json, flush=True)
 
     if json.get("status") == "logged-in":
         session["username"] = username
@@ -123,16 +116,14 @@ def sender_login():
         flash("Zalogowano na konto nadawcy.", "success")
         return redirect(url_for("sender_dashboard"))
 
-    if json.get("error") == "Invalid username":
-        flash("Nie znaleziono użytkownika o podanej nazwie.", "danger")
-        return redirect(url_for("sender_login"))
-
-    if json.get("error") == "Invalid password":
-        flash("Nieprawidłowe hasło.", "danger")
+    error_pl = json.get("error_pl")
+    if error_pl:
+        flash(error_pl, "danger")
         return redirect(url_for("sender_login"))
     
     flash("Nieznany błąd", "danger")
     return redirect(url_for("sender_login"))
+
 
 @app.route("/sender/logout")
 def sender_logout():
@@ -158,26 +149,20 @@ def sender_dashboard():
     package = {"recipient": request.form.get("recipient"),
             "box_id": request.form.get("box-id"),
             "size": request.form.get("size")}
-
-    if not package["recipient"]:
-        flash("Nazwa adresata nie może być pusta.", "danger")
-        return redirect(url_for("sender_dashboard"))
-    
-    if not package["box_id"]:
-        flash("Identyfikator skrytki nie może być pusty.", "danger")
-        return redirect(url_for("sender_dashboard"))
-
-    if not package["size"]:
-        flash("Rozmiar nie może być pusty.", "danger")
-        return redirect(url_for("sender_dashboard"))
     
     r = requests.post(API_URL + "/sender/" + g.username + "/packages", json=package)
-    print(r.json(), flush=True)
+
+    error_pl = r.json().get("error_pl")
+    if error_pl:
+        flash(error_pl, "danger")
+        return redirect(url_for("sender_dashboard"))
 
     return redirect(url_for("sender_dashboard"))
 
+
 def is_package_sender(sender, package_id):
     return db.sismember(f"user_packages:{sender}", f"package:{package_id}")
+
 
 @app.route("/package/delete/<id>")
 def delete_package(id):
@@ -186,12 +171,9 @@ def delete_package(id):
 
     r = requests.delete(API_URL + "/sender/" + g.username + "/packages/" + id)
     
-    if r.status_code == 200:
-        return redirect(url_for("sender_dashboard"))
-    
-    error = r.json()["error"]
-    if error == "Package in transit cannot be deleted":
-        flash("Nie można usunąć, paczka jest już w drodze.", "danger")
+    error_pl = r.json().get("error_pl")
+    if error_pl:
+        flash(error_pl, "danger")
 
     return redirect(url_for("sender_dashboard"))
 

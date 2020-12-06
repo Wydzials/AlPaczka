@@ -150,7 +150,7 @@ def sender_dashboard():
         package_sizes = {1: "Mały", 2: "Średni", 3: "Duży"}
 
         r = requests.get(API_URL + "/sender/" + g.username + "/packages")
-        packages = r.json().get("packages")
+        packages = r.json()
 
         return render_template("sender_dashboard.html", packages=packages, sizes=package_sizes)
     
@@ -181,12 +181,19 @@ def is_package_sender(sender, package_id):
 
 @app.route("/package/delete/<id>")
 def delete_package(id):
-    if is_package_sender(g.username, id):
-        db.srem(f"user_packages:{g.username}", f"package:{id}")
-        db.delete(f"package:{id}")
+    if not g.username:
         return redirect(url_for("sender_dashboard"))
-    else:
-        return "Brak dostępu", 401
+
+    r = requests.delete(API_URL + "/sender/" + g.username + "/packages/" + id)
+    
+    if r.status_code == 200:
+        return redirect(url_for("sender_dashboard"))
+    
+    error = r.json()["error"]
+    if error == "Package in transit cannot be deleted":
+        flash("Nie można usunąć, paczka jest już w drodze.", "danger")
+
+    return redirect(url_for("sender_dashboard"))
 
 
 if __name__ == "__main__":

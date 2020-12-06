@@ -5,3 +5,4 @@ redis
 bcrypt
 pyjwt
 flask_hal
+pyjwt

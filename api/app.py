@@ -7,8 +7,8 @@ from flask_hal.link import Link
 from redis import Redis
 from dotenv import load_dotenv
 from bcrypt import hashpw, gensalt, checkpw
-from datetime import datetime
-from jwt import decode
+from datetime import datetime, timedelta
+from jwt import encode, decode
 from uuid import uuid4
 import json, os
 
@@ -25,7 +25,14 @@ app.config.from_object(__name__)
 
 @app.before_request
 def before():
-    g.username = "szymon" # TODO
+    token = request.headers.get('Authorization', "").replace('Bearer ','')
+    try:
+        authorization = decode(token, str(JWT_SECRET), algorithms=['HS256'])
+        g.username = authorization.get("sub")
+        log('Authorized: ' + g.username)
+    except Exception as e:
+        log('Unauthorized: ' + str(e))
+        g.username = ""
 
 @app.route("/login", methods=["GET"])
 def login():
@@ -56,17 +63,26 @@ def login():
 
     log("Logged in user " + username)
 
+    payload = {
+        'exp': datetime.utcnow() + timedelta(seconds=60),
+        'iat': datetime.utcnow(),
+        'sub': username
+    }
+    token = encode(payload, str(app.config.get("JWT_SECRET")), algorithm="HS256")
+
     links = []
     links.append(Link("sender:dashboard", "/sender/dashboard"))
     links.append(Link("sender:logout", "/sender/logout"))
 
-    document = Document(data={"status": "logged-in"}, links=links)
+    document = Document(data={"status": "logged-in", "token": token.decode()}, links=links)
     return document.to_json()
 
 @app.route("/sender/<username>/packages", methods=["GET"])
 def get_sender_packages(username):
-    package_names = db.smembers(f"user_packages:{username}")
+    if username != g.get("username"):
+        return error("Unauthorized", "Brak dostępu.")
 
+    package_names = db.smembers(f"user_packages:{username}")
     packages = []
     for name in package_names:
         package = db.hgetall(name)
@@ -84,20 +100,23 @@ def get_sender_packages(username):
 
 @app.route("/sender/<username>/packages", methods=["POST"])
 def add_sender_package(username):
+    if username != g.get("username"):
+        return error("Unauthorized", "Brak dostępu.")
+    
     package = request.json
 
-    if not package["recipient"]:
+    if not package.get("recipient"):
         return error("No recipient provided", "Nazwa adresata nie może być pusta.")
     
-    if not package["box_id"]:
+    if not package.get("box_id"):
         return error("No box_id provided", "Numer skrytki nie może być pusty.")
     
     try:
-        box_id = int(package["box_id"])
+        box_id = int(package.get("box_id"))
     except ValueError:
         return error("Invalid box_id", "Nieprawidłowy numer skrytki.")
 
-    if not package["size"]:
+    if not package.get("size"):
         return error("No size provided", "Rozmiar nie może być pusty.")
 
     id = uuid4()
@@ -117,13 +136,16 @@ def add_sender_package(username):
 
 @app.route("/sender/<username>/packages/<id>", methods=["DELETE"])
 def delete_sender_package(username, id):
+    if username != g.get("username"):
+        return error("Unauthorized", "Brak dostępu.")
+
     is_package_sender = db.sismember(f"user_packages:{username}", f"package:{id}")
 
     if not db.hget(f"package:{id}", "recipient"):
         return error("Package not found", "Nie znaleziono paczki")
 
     if not is_package_sender:
-        return error("Unauthorized", "Brak dostępu", 401)
+        return error("Unauthorized", "Brak dostępu.", 401)
 
     if not db.hget(f"package:{id}", "status") == "label":
         return error("Package in transit cannot be deleted", "Nie można usunąć, paczka jest już w drodze.")

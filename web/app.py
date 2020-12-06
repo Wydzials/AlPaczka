@@ -19,7 +19,7 @@ if cloud_url:
     SESSION_COOKIE_SECURE = True
 
 SESSION_TYPE = "filesystem"
-PERMANENT_SESSION_LIFETIME = 600
+PERMANENT_SESSION_LIFETIME = 60
 SESSION_COOKIE_HTTPONLY = True
 SECRET_KEY = os.getenv("SECRET_KEY")
 
@@ -114,6 +114,7 @@ def sender_login():
         session["username"] = username
         session["logged-at"] = datetime.now()
         flash("Zalogowano na konto nadawcy.", "success")
+        session["token"] = json.get("token")
         return redirect(url_for("sender_dashboard"))
 
     error_pl = json.get("error_pl")
@@ -140,7 +141,10 @@ def sender_dashboard():
     if request.method == "GET":
         package_sizes = {1: "Mały", 2: "Średni", 3: "Duży"}
 
-        r = requests.get(API_URL + "/sender/" + g.username + "/packages")
+        headers = {"Authorization": session.get("token")}
+        print("HEADERS: " + str(headers), flush=True)
+        url = API_URL + "/sender/" + g.username + "/packages"
+        r = requests.get(url, headers=headers)
         packages = r.json().get("packages")
 
         return render_template("sender_dashboard.html", packages=packages, sizes=package_sizes)
@@ -150,7 +154,9 @@ def sender_dashboard():
             "box_id": request.form.get("box-id"),
             "size": request.form.get("size")}
     
-    r = requests.post(API_URL + "/sender/" + g.username + "/packages", json=package)
+    headers = {"Authorization": session.get("token")}
+    url = API_URL + "/sender/" + g.username + "/packages"
+    r = requests.post(url, json=package, headers=headers)
 
     error_pl = r.json().get("error_pl")
     if error_pl:
@@ -169,7 +175,9 @@ def delete_package(id):
     if not g.username:
         return redirect(url_for("sender_dashboard"))
 
-    r = requests.delete(API_URL + "/sender/" + g.username + "/packages/" + id)
+    headers = {"Authorization": session.get("token")}
+    url = API_URL + "/sender/" + g.username + "/packages/" + id
+    r = requests.delete(url, headers=headers)
     
     error_pl = r.json().get("error_pl")
     if error_pl:

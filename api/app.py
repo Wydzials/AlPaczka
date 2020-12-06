@@ -1,5 +1,9 @@
 from flask import Flask, request, g
 
+from flask_hal import HAL
+from flask_hal.document import Document, Embedded
+from flask_hal.link import Link
+
 from redis import Redis
 from dotenv import load_dotenv
 from bcrypt import hashpw, gensalt, checkpw
@@ -10,6 +14,7 @@ import json, os
 
 
 app = Flask(__name__)
+HAL(app)
 load_dotenv()
 
 cloud_url = os.environ.get("REDIS_URL")
@@ -17,6 +22,10 @@ db = Redis.from_url(cloud_url) if cloud_url else Redis(host="redis", decode_resp
 
 JWT_SECRET = os.getenv("JWT_SECRET")
 app.config.from_object(__name__)
+
+@app.before_request
+def before():
+    g.username = "szymon" # TODO
 
 @app.route("/login", methods=["GET"])
 def login():
@@ -46,7 +55,13 @@ def login():
                 "error_pl": "Nieprawidłowe hasło."}, 400
 
     log("Logged in user " + username)
-    return {"status": "logged-in"}, 200
+
+    links = []
+    links.append(Link("sender:dashboard", "/sender/dashboard"))
+    links.append(Link("sender:logout", "/sender/logout"))
+
+    document = Document(data={"status": "logged-in"}, links=links)
+    return document.to_json()
 
 @app.route("/sender/<username>/packages", methods=["GET"])
 def get_sender_packages(username):
@@ -59,7 +74,13 @@ def get_sender_packages(username):
         packages.append(package)
 
     packages = sorted(packages, key=lambda k: int(k["box_id"]))
-    return json.dumps(packages), 200
+
+    links = []
+    links.append(Link("package:create", "/sender/" + g.username + "/packages"))
+    links.append(Link("package:delete", "/sender/" + g.username + "/packages/{id}", templated=True))
+
+    document = Document(data={"packages": packages}, links=links)
+    return document.to_json()
 
 @app.route("/sender/<username>/packages", methods=["POST"])
 def add_sender_package(username):
@@ -87,7 +108,12 @@ def add_sender_package(username):
     db.sadd(f"user_packages:{username}", f"package:{id}")
 
     log("Created package: " + str(db.hgetall(f"package:{id}")) + " from sender " + username)
-    return json.dumps(db.hgetall(f"package:{id}")), 200
+
+    links = []
+    links.append(Link("package:delete", "/sender/" + g.username + "/packages/" + str(id)))
+
+    document = Document(data={"status": "ok"}, links=links)
+    return document.to_json()
 
 @app.route("/sender/<username>/packages/<id>", methods=["DELETE"])
 def delete_sender_package(username, id):
@@ -106,7 +132,12 @@ def delete_sender_package(username, id):
     db.delete(f"package:{id}")
 
     log("Deleted package: " + id + " from sender: " + username)
-    return {"status": "ok"}, 200
+
+    links = []
+    links.append(Link("package:create", "/sender/" + g.username + "/packages"))
+
+    document = Document(data={"status": "ok"}, links=links)
+    return document.to_json()
 
 
 def error(error, error_pl, code=400):

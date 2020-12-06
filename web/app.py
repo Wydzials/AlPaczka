@@ -141,7 +141,7 @@ def sender_dashboard():
         package_sizes = {1: "Mały", 2: "Średni", 3: "Duży"}
 
         r = requests.get(API_URL + "/sender/" + g.username + "/packages")
-        packages = r.json()
+        packages = r.json().get("packages")
 
         return render_template("sender_dashboard.html", packages=packages, sizes=package_sizes)
     

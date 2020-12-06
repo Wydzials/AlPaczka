@@ -4,3 +4,4 @@ python-dotenv
 redis
 bcrypt
 pyjwt
+flask_hal

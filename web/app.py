@@ -8,6 +8,7 @@ from datetime import datetime
 from uuid import uuid4
 import re, os, requests
 from jwt import decode
+from werkzeug.exceptions import ServiceUnavailable
 
 
 app = Flask(__name__)
@@ -36,8 +37,15 @@ def internal_error(error):
         db.ping()
     except:
         message = "Błąd połączenia z bazą danych."
-        
-    return render_template("error.html", error_message=message)
+    
+    print("Error 500: " + str(error), flush=True)
+    return render_template("error.html", error_message=message), 500
+
+@app.errorhandler(ServiceUnavailable)
+def api_connection_error(error):
+    print(str(error), flush=True)
+    return render_template("error.html", error_message="Błąd połączenia z API."), 503
+
 
 @app.before_request
 def before_request():
@@ -119,7 +127,7 @@ def sender_login():
     username = request.form.get("username")
     password = request.form.get("password")
 
-    r = requests.get(API_URL + "/login", json={"username": username, "password": password})
+    r = api("GET", "/login", json={"username": username, "password": password}, authorize=False)
     json = r.json()
 
     if json.get("status") == "logged-in":
@@ -153,9 +161,9 @@ def sender_dashboard():
     if request.method == "GET":
         package_sizes = {1: "Mały", 2: "Średni", 3: "Duży"}
 
-        headers = {"Authorization": session.get("token")}
-        url = API_URL + "/sender/" + g.username + "/packages"
-        r = requests.get(url, headers=headers)
+        
+        url = "/sender/" + g.username + "/packages"
+        r = api("GET", url)
         packages = r.json().get("packages")
 
         return render_template("sender_dashboard.html", packages=packages, sizes=package_sizes)
@@ -165,9 +173,8 @@ def sender_dashboard():
             "box_id": request.form.get("box-id"),
             "size": request.form.get("size")}
     
-    headers = {"Authorization": session.get("token")}
-    url = API_URL + "/sender/" + g.username + "/packages"
-    r = requests.post(url, json=package, headers=headers)
+    url = "/sender/" + g.username + "/packages"
+    r = api("POST", url, json=package)
 
     error_pl = r.json().get("error_pl")
     if error_pl:
@@ -186,9 +193,8 @@ def delete_package(id):
     if not g.username:
         return redirect(url_for("sender_dashboard"))
 
-    headers = {"Authorization": session.get("token")}
-    url = API_URL + "/sender/" + g.username + "/packages/" + id
-    r = requests.delete(url, headers=headers)
+    url = "/sender/" + g.username + "/packages/" + id
+    r = api("DELETE", url)
     
     error_pl = r.json().get("error_pl")
     if error_pl:
@@ -196,6 +202,19 @@ def delete_package(id):
 
     return redirect(url_for("sender_dashboard"))
 
+def api(method, url, json="", authorize=True):
+    headers = {"Authorization": session.get("token")} if authorize else ""
+    url = API_URL + url
 
+    try:
+        if method == "GET":
+            return requests.get(url, json=json, headers=headers)
+        elif method == "POST":
+            return requests.post(url, json=json, headers=headers)
+        elif method == "DELETE":
+            return requests.delete(url, json=json, headers=headers)
+    except Exception as e:
+        raise ServiceUnavailable("API connection error: " + str(e))
+    
 if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True)

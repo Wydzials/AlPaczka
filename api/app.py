@@ -41,7 +41,7 @@ def before():
             data = {"error": "Expired token",
                     "error_pl": "Token wygasł, zaloguj się ponownie."}
             document = Document(data=data, links=links)
-            return document.to_json()
+            return document.to_json(), 401
     except Exception as e:
         log('Unauthorized: ' + str(e))
         g.username = ""

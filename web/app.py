@@ -7,6 +7,7 @@ from bcrypt import hashpw, gensalt, checkpw
 from datetime import datetime
 from uuid import uuid4
 import re, os, requests
+from jwt import decode
 
 
 app = Flask(__name__)
@@ -19,7 +20,7 @@ if cloud_url:
     SESSION_COOKIE_SECURE = True
 
 SESSION_TYPE = "filesystem"
-PERMANENT_SESSION_LIFETIME = 60
+PERMANENT_SESSION_LIFETIME = 600
 SESSION_COOKIE_HTTPONLY = True
 SECRET_KEY = os.getenv("SECRET_KEY")
 
@@ -41,6 +42,17 @@ def internal_error(error):
 @app.before_request
 def before_request():
     g.username = session.get("username")
+
+    token = session.get("token")
+    if token:
+        authorization = decode(token, verify=False)
+        exp = datetime.utcfromtimestamp(authorization.get("exp"))
+
+        print(exp, flush=True)
+        if datetime.utcnow() > exp:
+            session.clear()
+            flash("Sesja wygasła, zaloguj się ponownie.", "warning")
+            return redirect(url_for("sender_login"))
 
 @app.route("/")
 def index():
@@ -142,7 +154,6 @@ def sender_dashboard():
         package_sizes = {1: "Mały", 2: "Średni", 3: "Duży"}
 
         headers = {"Authorization": session.get("token")}
-        print("HEADERS: " + str(headers), flush=True)
         url = API_URL + "/sender/" + g.username + "/packages"
         r = requests.get(url, headers=headers)
         packages = r.json().get("packages")

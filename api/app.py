@@ -8,7 +8,7 @@ from redis import Redis
 from dotenv import load_dotenv
 from bcrypt import hashpw, gensalt, checkpw
 from datetime import datetime, timedelta
-from jwt import encode, decode
+from jwt import encode, decode, ExpiredSignatureError
 from uuid import uuid4
 import json, os
 
@@ -23,6 +23,8 @@ db = Redis.from_url(cloud_url) if cloud_url else Redis(host="redis", decode_resp
 JWT_SECRET = os.getenv("JWT_SECRET")
 app.config.from_object(__name__)
 
+JWT_LIFETIME = 300
+
 @app.before_request
 def before():
     token = request.headers.get('Authorization', "").replace('Bearer ','')
@@ -30,6 +32,16 @@ def before():
         authorization = decode(token, str(JWT_SECRET), algorithms=['HS256'])
         g.username = authorization.get("sub")
         log('Authorized: ' + g.username)
+    except ExpiredSignatureError:
+        if request.path != "/login":
+            log("Expired token for path: " + request.path)
+
+            links = []
+            links.append(Link("login", "/login"))
+            data = {"error": "Expired token",
+                    "error_pl": "Token wygasł, zaloguj się ponownie."}
+            document = Document(data=data, links=links)
+            return document.to_json()
     except Exception as e:
         log('Unauthorized: ' + str(e))
         g.username = ""
@@ -64,7 +76,7 @@ def login():
     log("Logged in user " + username)
 
     payload = {
-        'exp': datetime.utcnow() + timedelta(seconds=60),
+        'exp': datetime.utcnow() + timedelta(seconds=JWT_LIFETIME),
         'iat': datetime.utcnow(),
         'sub': username
     }

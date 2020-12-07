@@ -24,14 +24,16 @@ JWT_SECRET = os.getenv("JWT_SECRET")
 app.config.from_object(__name__)
 
 JWT_LIFETIME = 300
+COURIER_NAME =  os.getenv("COURIER_NAME")
+
 
 @app.before_request
 def before():
-    token = request.headers.get('Authorization', "").replace('Bearer ','')
+    token = request.headers.get("Authorization", "").replace("Bearer ","")
     try:
-        authorization = decode(token, str(JWT_SECRET), algorithms=['HS256'])
+        authorization = decode(token, str(JWT_SECRET), algorithms=["HS256"])
         g.username = authorization.get("sub")
-        log('Authorized: ' + g.username)
+        log("Authorized: " + g.username)
     except ExpiredSignatureError:
         if request.path != "/login":
             log("Expired token for path: " + request.path)
@@ -43,7 +45,7 @@ def before():
             document = Document(data=data, links=links)
             return document.to_json(), 401
     except Exception as e:
-        log('Unauthorized: ' + str(e))
+        log("Unauthorized: " + str(e))
         g.username = ""
 
 @app.route("/login", methods=["GET"])
@@ -76,9 +78,9 @@ def login():
     log("Logged in user " + username)
 
     payload = {
-        'exp': datetime.utcnow() + timedelta(seconds=JWT_LIFETIME),
-        'iat': datetime.utcnow(),
-        'sub': username
+        "exp": datetime.utcnow() + timedelta(seconds=JWT_LIFETIME),
+        "iat": datetime.utcnow(),
+        "sub": username
     }
     token = encode(payload, str(app.config.get("JWT_SECRET")), algorithm="HS256")
 
@@ -91,7 +93,7 @@ def login():
 
 @app.route("/sender/<username>/packages", methods=["GET"])
 def get_sender_packages(username):
-    if username != g.get("username"):
+    if username != g.get("username") or g.get("username") == COURIER_NAME:
         return error("Unauthorized", "Brak dostępu.")
 
     package_names = db.smembers(f"user_packages:{username}")
@@ -112,7 +114,7 @@ def get_sender_packages(username):
 
 @app.route("/sender/<username>/packages", methods=["POST"])
 def add_sender_package(username):
-    if username != g.get("username"):
+    if username != g.get("username") or g.get("username") == COURIER_NAME:
         return error("Unauthorized", "Brak dostępu.")
     
     package = request.json
@@ -148,8 +150,8 @@ def add_sender_package(username):
 
 @app.route("/sender/<username>/packages/<id>", methods=["DELETE"])
 def delete_sender_package(username, id):
-    if username != g.get("username"):
-        return error("Unauthorized", "Brak dostępu.")
+    if username != g.get("username") or g.get("username") == COURIER_NAME:
+        return error("Unauthorized", "Brak dostępu.", 401)
 
     is_package_sender = db.sismember(f"user_packages:{username}", f"package:{id}")
 
@@ -180,6 +182,51 @@ def error(error, error_pl, code=400):
 def log(message):
     time = "INFO [" + str(datetime.now()) + "]"
     print(time + ": " + message, flush=True)
+
+
+@app.route("/courier/packages")
+def courier_packages():
+    if g.username != COURIER_NAME:
+        return error("Unauthorized", "Brak dostępu.", 401)
+
+    packages = []
+    for user in db.smembers("users"):
+        for package_name in db.smembers(f"user_packages:{user}"):
+            package = db.hgetall(package_name)
+            package["id"] = package_name.replace("package:", "")
+            package["sender"] = user
+            packages.append(package)
+    
+    links = []
+    links.append(Link("package:update_status", "/courier/packages/{id}", templated=True))
+    document = Document(data={"packages": packages}, links=links)
+    return document.to_json()
+
+
+@app.route("/courier/packages/<id>", methods=["PATCH"])
+def change_status(id):
+    if g.username != COURIER_NAME:
+        return error("Unauthorized", "Brak dostępu.", 401)
+    
+    json = request.json
+    if not json:
+        return error("No JSON provided", "Niepoprawne żądanie, brak zawartości JSON.")
+
+    status = json.get("status")
+    if status not in ["label", "in transit", "delivered", "collected"]:
+        return error("Invalid status type", "Nieprawidłowy status paczki.")
+
+    package = "package:" + id
+    if not db.hexists(package, "status"):
+        return error("Package not found", "Nie znaleziono paczki o danym identyfikatorze.")
+
+    db.hset(package, "status", status)
+
+    links = []
+    links.append(Link("packages", "/courier/packages"))
+    document = Document(data={"package": db.hgetall(package)}, links=links)
+    return document.to_json()
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True)

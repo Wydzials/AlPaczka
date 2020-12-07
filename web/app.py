@@ -71,29 +71,31 @@ def sender_register():
     if request.method == "GET":
         return render_template("sender_register.html")
 
-    field_names = ["username", "firstname", "lastname", "email", "address", "password", "password2"]
-    errors = {"username": "nazwy użytkownika",
-              "firstname": "imienia",
-              "lastname": "nazwiska",
-              "email": "adresu email",
-              "address": "adresu",
-              "password": "hasła",
-              "password2": "potwierdzenia hasła"}
+    field_names_and_errors = {
+        "username": "nazwy użytkownika",
+        "firstname": "imienia",
+        "lastname": "nazwiska",
+        "email": "adresu email",
+        "address": "adresu",
+        "password": "hasła",
+        "password2": "potwierdzenia hasła"
+    }
+
     fields = {}
     correct = True
-    session.pop('_flashes', None)
+    session.pop("_flashes", None)
 
-    for name in field_names:
+    for name in field_names_and_errors:
         fields[name] = request.form.get(name)
         if not fields[name]:
-            flash(f"Nie podano {errors[name]}.", "danger")
+            flash(f"Nie podano {field_names_and_errors[name]}.", "danger")
             correct = False
 
     if fields["password"] != fields["password2"]:
         flash("Hasła nie są takie same.", "danger")
         correct = False
     
-    if fields["username"] and not re.fullmatch(r'^[a-z]{3,20}', fields["username"]):
+    if fields["username"] and not re.fullmatch(r"^[a-z]{3,20}", fields["username"]):
         flash("Nazwa użytkownika musi składać się z 3-20 małych liter.", "danger")
         correct = False
     
@@ -113,6 +115,8 @@ def sender_register():
     hashed = hashpw(password, gensalt(5))
     db.hset(f"user:{fields['username']}", "password", hashed)
 
+    db.sadd("users", fields["username"])
+
     flash("Pomyślnie zarejestrowano konto nadawcy.", "success")
     return redirect(url_for("index"))
 
@@ -122,7 +126,7 @@ def sender_login():
     if request.method == "GET":
         return render_template("sender_login.html")
     
-    session.pop('_flashes', None)
+    session.pop("_flashes", None)
 
     username = request.form.get("username")
     password = request.form.get("password")
@@ -159,19 +163,35 @@ def sender_dashboard():
         return redirect(url_for("index"))
 
     if request.method == "GET":
-        package_sizes = {1: "Mały", 2: "Średni", 3: "Duży"}
+        sizes = {
+            1: "Mały", 
+            2: "Średni", 
+            3: "Duży"
+        }
 
-        
+        statuses = {
+            "label": "Etykieta",
+            "in transit": "W drodze",
+            "delivered": "Dostarczona",
+            "collected": "Odebrana"
+        }
+
         url = "/sender/" + g.username + "/packages"
         r = api("GET", url)
         packages = r.json().get("packages")
 
-        return render_template("sender_dashboard.html", packages=packages, sizes=package_sizes)
+        for package in packages:
+            package["status"] = statuses[package["status"]]
+            package["size"] = sizes[int(package["size"])]
+
+        return render_template("sender_dashboard.html", packages=packages, sizes=sizes)
     
-    session.pop('_flashes', None)
-    package = {"recipient": request.form.get("recipient"),
-            "box_id": request.form.get("box-id"),
-            "size": request.form.get("size")}
+    session.pop("_flashes", None)
+    package = {
+        "recipient": request.form.get("recipient"),
+        "box_id": request.form.get("box-id"),
+        "size": request.form.get("size")
+    }
     
     url = "/sender/" + g.username + "/packages"
     r = api("POST", url, json=package)

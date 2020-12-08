@@ -6,7 +6,8 @@ from dotenv import load_dotenv
 from bcrypt import hashpw, gensalt, checkpw
 from datetime import datetime
 from uuid import uuid4
-import re, os, requests
+from os import getenv
+import re, requests
 from jwt import decode
 from werkzeug.exceptions import ServiceUnavailable
 
@@ -14,7 +15,7 @@ from werkzeug.exceptions import ServiceUnavailable
 app = Flask(__name__)
 load_dotenv()
 
-cloud_url = os.environ.get("REDIS_URL")
+cloud_url = getenv("REDIS_URL")
 db = Redis.from_url(cloud_url) if cloud_url else Redis(host="redis")
 
 if cloud_url:
@@ -23,11 +24,11 @@ if cloud_url:
 SESSION_TYPE = "filesystem"
 PERMANENT_SESSION_LIFETIME = 600
 SESSION_COOKIE_HTTPONLY = True
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = getenv("WEB_SECRET")
 
 app.config.from_object(__name__)
 ses = Session(app)
-API_URL = os.getenv("API_URL")
+API_URL = getenv("API_URL")
 
 
 @app.errorhandler(500)
@@ -202,10 +203,6 @@ def sender_dashboard():
         return redirect(url_for("sender_dashboard"))
 
     return redirect(url_for("sender_dashboard"))
-
-
-def is_package_sender(sender, package_id):
-    return db.sismember(f"user_packages:{sender}", f"package:{package_id}")
 
 
 @app.route("/package/delete/<id>")

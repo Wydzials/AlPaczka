@@ -10,21 +10,22 @@ from bcrypt import hashpw, gensalt, checkpw
 from datetime import datetime, timedelta
 from jwt import encode, decode, ExpiredSignatureError
 from uuid import uuid4
-import json, os
+from os import getenv
+import json
 
 
 app = Flask(__name__)
 HAL(app)
 load_dotenv()
 
-cloud_url = os.environ.get("REDIS_URL")
-db = Redis.from_url(cloud_url) if cloud_url else Redis(host="redis", decode_responses=True)
+cloud_url = getenv("REDIS_URL")
+db = Redis.from_url(cloud_url, decode_responses=True) if cloud_url else Redis(host="redis", decode_responses=True)
 
-JWT_SECRET = os.getenv("JWT_SECRET")
+JWT_SECRET = getenv("API_SECRET")
 app.config.from_object(__name__)
 
 JWT_LIFETIME = 300
-COURIER_NAME =  os.getenv("COURIER_NAME")
+COURIER_NAME =  getenv("COURIER_NAME")
 
 
 @app.before_request
@@ -38,8 +39,7 @@ def before():
         if request.path != "/login":
             log("Expired token for path: " + request.path)
 
-            links = []
-            links.append(Link("login", "/login"))
+            links = [Link("login", "/login")]
             data = {"error": "Expired token",
                     "error_pl": "Token wygasł, zaloguj się ponownie."}
             document = Document(data=data, links=links)
@@ -60,20 +60,16 @@ def login():
     db_password = db.hget(f"user:{username}", "password")
 
     if not username:
-        return {"error": "No username provided", 
-                "error_pl": "Nazwa użytkownika nie może być pusta."}, 400
+        return error("No username provided", "Nazwa użytkownika nie może być pusta.")
 
     if not password:
-        return {"error": "No password provided", 
-                "error_pl": "Hasło nie może być puste."}, 400
+        return error("No password provided", "Hasło nie może być puste.")
 
     if not db_password:
-        return {"error": "Invalid username", 
-                "error_pl": "Nieprawidłowa nazwa użytkownika."}, 400
+        return error("Invalid username", "Nieprawidłowa nazwa użytkownika.")
 
     if not checkpw(password.encode(), db_password.encode()):
-        return {"error": "Invalid password", 
-                "error_pl": "Nieprawidłowe hasło."}, 400
+        return error("Invalid password", "Nieprawidłowe hasło.")
 
     log("Logged in user " + username)
 
@@ -84,9 +80,10 @@ def login():
     }
     token = encode(payload, str(app.config.get("JWT_SECRET")), algorithm="HS256")
 
-    links = []
-    links.append(Link("sender:dashboard", "/sender/dashboard"))
-    links.append(Link("sender:logout", "/sender/logout"))
+    links = [
+        Link("sender:dashboard", "/sender/dashboard"),
+        Link("sender:logout", "/sender/logout")
+    ]
 
     document = Document(data={"status": "logged-in", "token": token.decode()}, links=links)
     return document.to_json()
@@ -105,9 +102,10 @@ def get_sender_packages(username):
 
     packages = sorted(packages, key=lambda k: int(k["box_id"]))
 
-    links = []
-    links.append(Link("package:create", "/sender/" + g.username + "/packages"))
-    links.append(Link("package:delete", "/sender/" + g.username + "/packages/{id}", templated=True))
+    links = [
+        Link("package:create", "/sender/" + g.username + "/packages"),
+        Link("package:delete", "/sender/" + g.username + "/packages/{id}", templated=True)
+    ]
 
     document = Document(data={"packages": packages}, links=links)
     return document.to_json()
@@ -130,21 +128,20 @@ def add_sender_package(username):
     except ValueError:
         return error("Invalid box_id", "Nieprawidłowy numer skrytki.")
 
-    if not package.get("size"):
-        return error("No size provided", "Rozmiar nie może być pusty.")
+    size = int(package.get("size"))
+    if size not in [1, 2, 3]:
+        return error("Invalid size", "Nieprawidłowy rozmiar paczki.")
 
     id = uuid4()
     db.hset(f"package:{id}", "recipient", package["recipient"])
     db.hset(f"package:{id}", "box_id", box_id)
-    db.hset(f"package:{id}", "size", package["size"])
+    db.hset(f"package:{id}", "size", size)
     db.hset(f"package:{id}", "status", "label")
     db.sadd(f"user_packages:{username}", f"package:{id}")
 
     log("Created package: " + str(db.hgetall(f"package:{id}")) + " from sender " + username)
 
-    links = []
-    links.append(Link("package:delete", "/sender/" + g.username + "/packages/" + str(id)))
-
+    links = [Link("package:delete", "/sender/" + g.username + "/packages/" + str(id))]
     document = Document(data={"status": "ok"}, links=links)
     return document.to_json()
 
@@ -169,9 +166,7 @@ def delete_sender_package(username, id):
 
     log("Deleted package: " + id + " from sender: " + username)
 
-    links = []
-    links.append(Link("package:create", "/sender/" + g.username + "/packages"))
-
+    links = [Link("package:create", "/sender/" + g.username + "/packages")]
     document = Document(data={"status": "ok"}, links=links)
     return document.to_json()
 
@@ -197,8 +192,7 @@ def courier_packages():
             package["sender"] = user
             packages.append(package)
     
-    links = []
-    links.append(Link("package:update_status", "/courier/packages/{id}", templated=True))
+    links = [Link("package:update_status", "/courier/packages/{id}", templated=True)]
     document = Document(data={"packages": packages}, links=links)
     return document.to_json()
 
@@ -222,8 +216,7 @@ def change_status(id):
 
     db.hset(package, "status", status)
 
-    links = []
-    links.append(Link("packages", "/courier/packages"))
+    links = [Link("packages", "/courier/packages")]
     document = Document(data={"package": db.hgetall(package)}, links=links)
     return document.to_json()
 

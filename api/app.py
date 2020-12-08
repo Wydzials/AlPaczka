@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from jwt import encode, decode, ExpiredSignatureError
 from uuid import uuid4
 from os import getenv
-import json
+import json, re
 
 
 app = Flask(__name__)
@@ -48,7 +48,65 @@ def before():
         log("Unauthorized: " + str(e))
         g.username = ""
 
-@app.route("/login", methods=["GET"])
+@app.route("/sender/register", methods=["POST"])
+def register():
+    data = request.json
+
+    if not data:
+        return {"error": "No JSON provided"}, 400
+
+    names_and_errors = {
+        "username": "nazwy użytkownika",
+        "firstname": "imienia",
+        "lastname": "nazwiska",
+        "email": "adresu email",
+        "address": "adresu",
+        "password": "hasła",
+        "password2": "potwierdzenia hasła"
+    }
+
+    errors = []
+    errors_pl = []
+    fields = {}
+
+    for name in names_and_errors:
+        fields[name] = data.get(name)
+        if not fields[name]:
+            errors.append("No " + name + " provided.")
+            errors_pl.append(f"Nie podano {names_and_errors[name]}.")
+
+    if fields["password"] != fields["password2"]:
+        errors.append("Passwords does not match")
+        errors_pl.append("Hasła nie są takie same.")
+    
+    if fields["username"] and not re.fullmatch(r"^[a-z]{3,20}", fields["username"]):
+        errors.append("Username must contain only 3-20 lowercase letters")
+        errors_pl.append("Nazwa użytkownika musi składać się z 3-20 małych liter.")
+    
+    if fields["username"] and db.hexists(f"user:{fields['username']}", "password"):
+        errors.append("Username is taken")
+        errors_pl.append("Nazwa użytkownika jest zajęta.")
+    
+    if len(errors) > 0:
+        return error(errors, errors_pl)
+
+    db.hset(f"user:{fields['username']}", "firstname", fields["firstname"])
+    db.hset(f"user:{fields['username']}", "lastname", fields["lastname"])
+    db.hset(f"user:{fields['username']}", "address", fields["address"])
+    db.hset(f"user:{fields['username']}", "email", fields["email"])
+
+    password = fields["password"].encode()
+    hashed = hashpw(password, gensalt(5))
+    db.hset(f"user:{fields['username']}", "password", hashed)
+    db.sadd("users", fields["username"])
+    
+    links = [Link("sender:login", "/sender/login")]
+
+    document = Document(links=links)
+    return document.to_json(), 201
+
+
+@app.route("/sender/login", methods=["GET"])
 def login():
     json = request.json
 
@@ -142,8 +200,8 @@ def add_sender_package(username):
     log("Created package: " + str(db.hgetall(f"package:{id}")) + " from sender " + username)
 
     links = [Link("package:delete", "/sender/" + g.username + "/packages/" + str(id))]
-    document = Document(data={"status": "ok"}, links=links)
-    return document.to_json()
+    document = Document(links=links)
+    return document.to_json(), 201
 
 @app.route("/sender/<username>/packages/<id>", methods=["DELETE"])
 def delete_sender_package(username, id):

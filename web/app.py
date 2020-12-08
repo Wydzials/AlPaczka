@@ -15,12 +15,7 @@ from werkzeug.exceptions import ServiceUnavailable
 app = Flask(__name__)
 load_dotenv()
 
-cloud_url = getenv("REDIS_URL")
-db = Redis.from_url(cloud_url) if cloud_url else Redis(host="redis")
-
-if cloud_url:
-    SESSION_COOKIE_SECURE = True
-
+# SESSION_COOKIE_SECURE = True
 SESSION_TYPE = "filesystem"
 PERMANENT_SESSION_LIFETIME = 600
 SESSION_COOKIE_HTTPONLY = True
@@ -33,14 +28,8 @@ API_URL = getenv("API_URL")
 
 @app.errorhandler(500)
 def internal_error(error):
-    message = "Nieznany błąd serwera."
-    try:
-        db.ping()
-    except:
-        message = "Błąd połączenia z bazą danych."
-    
     print("Error 500: " + str(error), flush=True)
-    return render_template("error.html", error_message=message), 500
+    return render_template("error.html", error_message="Nieznany błąd serwera."), 500
 
 @app.errorhandler(ServiceUnavailable)
 def api_connection_error(error):
@@ -57,7 +46,7 @@ def before_request():
         authorization = decode(token, verify=False)
         exp = datetime.utcfromtimestamp(authorization.get("exp"))
 
-        print(exp, flush=True)
+        print("Token exp: " + str(exp), flush=True)
         if datetime.utcnow() > exp:
             session.clear()
             flash("Sesja wygasła, zaloguj się ponownie.", "warning")
@@ -72,51 +61,29 @@ def sender_register():
     if request.method == "GET":
         return render_template("sender_register.html")
 
-    field_names_and_errors = {
-        "username": "nazwy użytkownika",
-        "firstname": "imienia",
-        "lastname": "nazwiska",
-        "email": "adresu email",
-        "address": "adresu",
-        "password": "hasła",
-        "password2": "potwierdzenia hasła"
-    }
+    fields = [
+        "username",
+        "firstname",
+        "lastname",
+        "email",
+        "address",
+        "password",
+        "password2"
+    ]
 
-    fields = {}
-    correct = True
+    user = {}
     session.pop("_flashes", None)
 
-    for name in field_names_and_errors:
-        fields[name] = request.form.get(name)
-        if not fields[name]:
-            flash(f"Nie podano {field_names_and_errors[name]}.", "danger")
-            correct = False
+    for name in fields:
+        user[name] = request.form.get(name)
 
-    if fields["password"] != fields["password2"]:
-        flash("Hasła nie są takie same.", "danger")
-        correct = False
-    
-    if fields["username"] and not re.fullmatch(r"^[a-z]{3,20}", fields["username"]):
-        flash("Nazwa użytkownika musi składać się z 3-20 małych liter.", "danger")
-        correct = False
-    
-    if fields["username"] and db.hexists(f"user:{fields['username']}", "password"):
-        flash("Nazwa użytkownika jest zajęta.", "danger")
-        correct = False
+    r = api("POST", "/sender/register", user, authorize=False)
+    json = r.json()
 
-    if not correct:
+    if json.get("error_pl"):
+        for error in json.get("error_pl"):
+            flash(error, "danger")
         return redirect(url_for("sender_register"))
-
-    db.hset(f"user:{fields['username']}", "firstname", fields["firstname"])
-    db.hset(f"user:{fields['username']}", "lastname", fields["lastname"])
-    db.hset(f"user:{fields['username']}", "address", fields["address"])
-    db.hset(f"user:{fields['username']}", "email", fields["email"])
-
-    password = fields["password"].encode()
-    hashed = hashpw(password, gensalt(5))
-    db.hset(f"user:{fields['username']}", "password", hashed)
-
-    db.sadd("users", fields["username"])
 
     flash("Pomyślnie zarejestrowano konto nadawcy.", "success")
     return redirect(url_for("index"))
@@ -132,7 +99,7 @@ def sender_login():
     username = request.form.get("username")
     password = request.form.get("password")
 
-    r = api("GET", "/login", json={"username": username, "password": password}, authorize=False)
+    r = api("GET", "/sender/login", {"username": username, "password": password}, authorize=False)
     json = r.json()
 
     if json.get("status") == "logged-in":

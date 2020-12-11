@@ -18,14 +18,23 @@ flash_messages = ["Sterowanie: strzałki + enter"]
 
 
 def clear():
-    system('cls' if name == 'nt' else 'clear')
+    system("cls" if name == "nt" else "clear")
 
 
 def header():
     clear()
     print("-" * WIDTH)
     print(row.format("AlPaczka: Aplikacja dla kuriera"))
-    print(row.format("Data ważności tokenu: " + str(exp)))
+
+    delta = exp - datetime.utcnow()
+    prefix = "Twój token jest ważny jeszcze przez"
+    if delta.days == 1:
+        print(row.format(f"{prefix} 1 dzień."))
+    elif delta.days > 1:
+        print(row.format(f"{prefix} {delta.days} dni."))
+    else:
+        print(row.format(f"{prefix} {delta.seconds // 3600} godziny."))
+    
     print("-" * WIDTH)
     if datetime.utcnow() >= exp:
         print("Twój token jest nieważny!")
@@ -200,9 +209,9 @@ def menu():
     header()
     questions = [
         {
-            'type': 'list',
-            'name': 'choice',
-            'message': 'Wybierz akcję:\n',
+            "type": "list",
+            "name": "choice",
+            "message": "Wybierz akcję:\n",
             "choices": [
                 {
                     "name": "Lista etykiet: utwórz paczkę",
@@ -253,6 +262,10 @@ def menu():
 load_dotenv()
 API_URL = getenv("API_URL") or "https://alpaczka-api.herokuapp.com"
 TOKEN = getenv("TOKEN")
+
+if not TOKEN:
+    print("Nie znaleziono tokenu do autoryzacji!")
+    exit()
 
 authorization = decode(TOKEN, verify=False)
 exp = datetime.utcfromtimestamp(authorization.get("exp"))

@@ -51,7 +51,7 @@ def api(method, url, json=""):
         elif method == "PATCH":
             return requests.patch(url, json=json, headers=headers)
     except:
-        print("Błąd połącznia z API.")
+        print("Błąd połączenia z API.")
         exit()
 
 
@@ -251,8 +251,8 @@ def menu():
 
 
 load_dotenv()
-API_URL = getenv("API_URL")
-TOKEN = getenv("COURIER_TOKEN")
+API_URL = getenv("API_URL") or "https://alpaczka-api.herokuapp.com"
+TOKEN = getenv("TOKEN")
 
 authorization = decode(TOKEN, verify=False)
 exp = datetime.utcfromtimestamp(authorization.get("exp"))

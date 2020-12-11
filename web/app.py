@@ -15,16 +15,20 @@ from werkzeug.exceptions import ServiceUnavailable
 app = Flask(__name__)
 load_dotenv()
 
-# SESSION_COOKIE_SECURE = True
+
 SESSION_TYPE = "filesystem"
 PERMANENT_SESSION_LIFETIME = 600
 SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = True
 SECRET_KEY = getenv("WEB_SECRET")
+
+API_URL = getenv("API_URL")
+if API_URL is None:
+    API_URL = "http://api:8000"
+    SESSION_COOKIE_SECURE = False
 
 app.config.from_object(__name__)
 ses = Session(app)
-API_URL = getenv("API_URL")
-
 
 @app.errorhandler(500)
 def internal_error(error):

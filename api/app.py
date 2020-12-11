@@ -25,7 +25,7 @@ JWT_SECRET = getenv("API_SECRET")
 app.config.from_object(__name__)
 
 JWT_LIFETIME = 300
-COURIER_NAME =  getenv("COURIER_NAME")
+COURIER_NAME = "COURIER"
 
 
 @app.before_request

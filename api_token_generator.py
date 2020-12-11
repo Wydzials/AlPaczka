@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 API_SECRET = str(getenv("API_SECRET"))
-JWT_LIFETIME_DAYS = 1
+JWT_LIFETIME_DAYS = 3
 
 payload = {
     "exp": datetime.utcnow() + timedelta(days=JWT_LIFETIME_DAYS),
@@ -14,4 +14,4 @@ payload = {
     "sub": "COURIER"
 }
 token = encode(payload, API_SECRET, algorithm="HS256")
-print("New token: " + token.decode())
+print("TOKEN='" + token.decode() + "'")

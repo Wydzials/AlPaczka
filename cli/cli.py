@@ -1,39 +1,39 @@
 from dotenv import load_dotenv
-from os import getenv
-import requests
+from os import getenv, name, system
 from datetime import datetime
 from jwt import decode
-
 from PyInquirer import prompt
-import os
+import requests
 
 
+WIDTH = 60
+row = "{:^" + str(WIDTH) + "}"
 statuses = {
     "label": "Etykieta",
     "in transit": "W drodze",
     "delivered": "Dostarczona",
     "collected": "Odebrana"
 }
-flash_messages = ["(Sterowanie: strzałki + enter)"]
+flash_messages = ["Sterowanie: strzałki + enter"]
 
 
 def clear():
-    os.system('cls' if os.name == 'nt' else 'clear')
+    system('cls' if name == 'nt' else 'clear')
 
 
 def header():
     clear()
-    print("-" * 50)
-    print("{:^50}".format("AlPaczka: Aplikacja dla kuriera"))
-    print("{:^50}".format("Data ważności tokenu: " + str(exp)))
-    print("-" * 50)
+    print("-" * WIDTH)
+    print(row.format("AlPaczka: Aplikacja dla kuriera"))
+    print(row.format("Data ważności tokenu: " + str(exp)))
+    print("-" * WIDTH)
     if datetime.utcnow() >= exp:
         print("Twój token jest nieważny!")
-        print("Korzystanie z aplikacji wymaga posiadania ważnego tokenu.")
+        print("Aby skorzystać z aplikacji, musisz wygenerować nowy token.")
         exit()
 
     for message in flash_messages:
-        print("{: ^50}".format(message))
+        print(row.format("(!) " + message))
     flash_messages.clear()
 
 
@@ -74,6 +74,7 @@ def get_packages():
 
 
 def label_to_package(package_id):
+    header()
     question = {
         "type": "list",
         "name": "label",
@@ -106,7 +107,7 @@ def label_to_package(package_id):
 
 def list_menu(message, labels):
     packages_data = get_packages()
-    row_format = "{: <10} {: <8} {: <12} {: <12} {: <12}"
+    row_format = "{: <10} {: <8} {: <12} {: <14} {: <14}"
 
     choices = [
         row_format.format("Skrytka", "Rozmiar", "Status",
@@ -127,6 +128,11 @@ def list_menu(message, labels):
                     "value": p.get("id")
                 }
             )
+    if len(choices) == 1:
+        flash_messages.append("Brak paczek do edycji!")
+        flash_messages.append("Poczekajmy, aż klienci coś wyślą.")
+        return "cancel"
+
     choices.append(
         {
             "name": "[ Anuluj ]",
@@ -160,6 +166,12 @@ def change_status(package_id):
                 "value": en
             }
         )
+    choices.append(
+        {
+            "name": "[ Anuluj ]",
+            "value": "cancel"
+        }
+    )
 
     question = {
         "type": "list",
@@ -170,6 +182,9 @@ def change_status(package_id):
 
     header()
     choice = prompt(question).get("package")
+    if choice == "cancel":
+        return
+
     r = api("PATCH", f"/courier/packages/{package_id}", {"status": choice})
 
     if r.status_code == 200:
@@ -221,6 +236,13 @@ def menu():
         choice = list_menu("Wybierz paczkę do zmiany statusu:", labels=False)
         if choice != "cancel":
             change_status(choice)
+    
+    elif choice == 2:
+        header()
+        print(" Witaj w aplikacji dla kuriera AlPaczka!")
+        print(" Sterowanie odbywa się przy użyciu klawiszy \n strzałek (góra/dół) oraz entera.")
+        print(" Miłego paczkowania!\n")
+        input(" [Enter] Powrót do menu")
 
     elif choice == 3:
         clear()

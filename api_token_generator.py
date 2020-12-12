@@ -14,4 +14,4 @@ payload = {
     "sub": "COURIER"
 }
 token = encode(payload, API_SECRET, algorithm="HS256")
-print("TOKEN='" + token.decode() + "'")
+print(token.decode())

@@ -33,7 +33,7 @@ def header():
     elif delta.days > 1:
         print(row.format(f"{prefix} {delta.days} dni."))
     else:
-        print(row.format(f"{prefix} {delta.seconds // 3600} godziny."))
+        print(row.format(f"{prefix} {delta.seconds // 3600} godzin."))
     
     print("-" * WIDTH)
     if datetime.utcnow() >= exp:
@@ -52,13 +52,21 @@ def api(method, url, json=""):
 
     try:
         if method == "GET":
-            return requests.get(url, json=json, headers=headers)
+            r = requests.get(url, json=json, headers=headers)
         elif method == "POST":
-            return requests.post(url, json=json, headers=headers)
+            r = requests.post(url, json=json, headers=headers)
         elif method == "DELETE":
-            return requests.delete(url, json=json, headers=headers)
+            r = requests.delete(url, json=json, headers=headers)
         elif method == "PATCH":
-            return requests.patch(url, json=json, headers=headers)
+            r = requests.patch(url, json=json, headers=headers)
+
+        if r.status_code != 200:
+            print("Błąd połączenia z api")
+            error = r.json().get("error_pl")
+            if error:
+                print(error)
+            exit()
+        return r
     except:
         print("Błąd połączenia z API.")
         exit()
@@ -73,8 +81,8 @@ def get_packages():
 
     r = api("GET", "/courier/packages")
     data = r.json()
-    packages = data.get("packages")
 
+    packages = data.get("packages")
     for package in packages:
         package["size"] = sizes[int(package["size"])]
         package["status"] = statuses[package["status"]]
@@ -250,6 +258,7 @@ def menu():
         header()
         print(" Witaj w aplikacji dla kuriera AlPaczka!")
         print(" Sterowanie odbywa się przy użyciu klawiszy \n strzałek (góra/dół) oraz entera.")
+        print(" API: " + API_URL)
         print(" Miłego paczkowania!\n")
         input(" [Enter] Powrót do menu")
 

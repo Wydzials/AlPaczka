@@ -3,9 +3,9 @@
 ## General info
 Flask web application for modern package delivery system.
 
-## P3 setup (in development)
+## P3 setup
 ### A) Heroku (recommended)
-This application is deployed on Heroku: https://alpaczka-dev.herokuapp.com/.
+This application is deployed on Heroku: https://alpaczka-p3.herokuapp.com/.
 
 You can run the command line app for couriers and connect with API on Heroku using bash script:
 ```bash
@@ -37,7 +37,7 @@ Then run application with `docker-compose`:
 docker-compose build
 docker-compose up
 ```
-Now you should be able to access web application with url `http://localhost:8000/`.
+Now you should be able to access web application with url http://localhost:8000/.
 
 
 Command line app for couriers also requires `.env` file with token and API url. Create one using:
@@ -52,7 +52,7 @@ docker run --network="host" -it alpaczka-cli
 ```
 
 ## Older releases
-### P2
+### P2 Setup
 Create `.env` file with secret key for Flask:
 ```bash
 echo "SECRET_KEY='[paste your key here]'" > .env

@@ -277,11 +277,11 @@ def change_status(id):
     if g.username != COURIER_NAME:
         return error("Unauthorized", "Brak dostępu.", 401)
 
-    json = request.json
-    if not json:
+    json_data = request.json
+    if not json_data:
         return error("No JSON provided", "Niepoprawne żądanie, brak zawartości JSON.")
 
-    status = json.get("status")
+    status = json_data.get("status")
     if status not in ["label", "in transit", "delivered", "collected"]:
         return error("Invalid status type", "Nieprawidłowy status paczki.")
 
@@ -291,9 +291,10 @@ def change_status(id):
 
     if status != db.hget(package, "status"):
         sender = db.hget(package, "sender")
-        db.publish(f"user:{sender}", "Nowy status paczki!")
+        recipient = db.hget(package, "recipient")
+        db.publish(
+            f"user:{sender}", f"Nowy status paczki dla adresata {recipient}! Odśwież stronę, aby zobaczyć zmiany.")
         db.hset(package, "status", status)
-
 
     links = [Link("packages", "/courier/packages")]
     document = Document(data={"package": db.hgetall(package)}, links=links)
@@ -311,7 +312,7 @@ def poll():
         if message:
             return {"data": str(message.get("data"))}
         time.sleep(0.5)
-    
+
     return "", 204
 
 

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, g
+from flask import Flask, render_template, request, redirect, url_for, flash, session, g, make_response
 from flask_session import Session
 
 from redis import Redis
@@ -7,9 +7,12 @@ from bcrypt import hashpw, gensalt, checkpw
 from datetime import datetime
 from uuid import uuid4
 from os import getenv
-import re, requests
 from jwt import decode
 from werkzeug.exceptions import ServiceUnavailable
+
+import re
+import requests
+import time
 
 
 app = Flask(__name__)
@@ -30,10 +33,12 @@ if API_URL is None:
 app.config.from_object(__name__)
 ses = Session(app)
 
+
 @app.errorhandler(500)
 def internal_error(error):
     print("Error 500: " + str(error), flush=True)
     return render_template("error.html", error_message="Nieznany błąd serwera."), 500
+
 
 @app.errorhandler(ServiceUnavailable)
 def api_connection_error(error):
@@ -56,9 +61,11 @@ def before_request():
             flash("Sesja wygasła, zaloguj się ponownie.", "warning")
             return redirect(url_for("sender_login"))
 
+
 @app.route("/")
 def index():
     return render_template("index.html")
+
 
 @app.route("/sender/register", methods=["GET", "POST"])
 def sender_register():
@@ -97,13 +104,14 @@ def sender_register():
 def sender_login():
     if request.method == "GET":
         return render_template("sender_login.html")
-    
+
     session.pop("_flashes", None)
 
     username = request.form.get("username")
     password = request.form.get("password")
 
-    r = api("GET", "/sender/login", {"username": username, "password": password}, authorize=False)
+    r = api("GET", "/sender/login",
+            {"username": username, "password": password}, authorize=False)
     json = r.json()
 
     if json.get("status") == "logged-in":
@@ -117,7 +125,7 @@ def sender_login():
     if error_pl:
         flash(error_pl, "danger")
         return redirect(url_for("sender_login"))
-    
+
     flash("Nieznany błąd", "danger")
     return redirect(url_for("sender_login"))
 
@@ -136,8 +144,8 @@ def sender_dashboard():
 
     if request.method == "GET":
         sizes = {
-            1: "Mały", 
-            2: "Średni", 
+            1: "Mały",
+            2: "Średni",
             3: "Duży"
         }
 
@@ -157,14 +165,14 @@ def sender_dashboard():
             package["size"] = sizes[int(package["size"])]
 
         return render_template("sender_dashboard.html", packages=packages, sizes=sizes)
-    
+
     session.pop("_flashes", None)
     package = {
         "recipient": request.form.get("recipient"),
         "box_id": request.form.get("box-id"),
         "size": request.form.get("size")
     }
-    
+
     url = "/sender/" + g.username + "/packages"
     r = api("POST", url, json=package)
 
@@ -183,12 +191,13 @@ def delete_package(id):
 
     url = "/sender/" + g.username + "/packages/" + id
     r = api("DELETE", url)
-    
+
     error_pl = r.json().get("error_pl")
     if error_pl:
         flash(error_pl, "danger")
 
     return redirect(url_for("sender_dashboard"))
+
 
 def api(method, url, json="", authorize=True):
     headers = {"Authorization": session.get("token")} if authorize else ""
@@ -203,6 +212,28 @@ def api(method, url, json="", authorize=True):
             return requests.delete(url, json=json, headers=headers)
     except Exception as e:
         raise ServiceUnavailable("API connection error: " + str(e))
-    
+
+
+@app.route('/notifications')
+def poll():
+    if not g.username:
+        return "Unathorized", 401
+
+    r = api("GET", "/notifications")
+    if r.status_code == 200:
+        data = r.json().get("data")
+        response = make_response(data, 200)
+    else:
+        response = make_response("", 204)
+
+    origin = request.headers.get('Origin')
+    allowed_origins = ["http://0.0.0.0:8000", "http://0.0.0.0:8000/"]
+    if origin in allowed_origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+
+    return response
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True)

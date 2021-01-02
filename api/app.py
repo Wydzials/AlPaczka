@@ -1,5 +1,4 @@
-from flask import Flask, request, g
-
+from flask import Flask, request, g, make_response
 from flask_hal import HAL
 from flask_hal.document import Document, Embedded
 from flask_hal.link import Link
@@ -11,7 +10,10 @@ from datetime import datetime, timedelta
 from jwt import encode, decode, ExpiredSignatureError
 from uuid import uuid4
 from os import getenv
-import json, re
+
+import json
+import re
+import time
 
 
 app = Flask(__name__)
@@ -19,7 +21,8 @@ HAL(app)
 load_dotenv()
 
 cloud_url = getenv("REDIS_URL")
-db = Redis.from_url(cloud_url, decode_responses=True) if cloud_url else Redis(host="redis", decode_responses=True)
+db = Redis.from_url(cloud_url, decode_responses=True) if cloud_url else Redis(
+    host="redis", decode_responses=True)
 
 JWT_SECRET = getenv("API_SECRET")
 app.config.from_object(__name__)
@@ -30,7 +33,7 @@ COURIER_NAME = "COURIER"
 
 @app.before_request
 def before():
-    token = request.headers.get("Authorization", "").replace("Bearer ","")
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
     try:
         authorization = decode(token, str(JWT_SECRET), algorithms=["HS256"])
         g.username = authorization.get("sub")
@@ -47,6 +50,7 @@ def before():
     except Exception as e:
         log("Unauthorized: " + str(e))
         g.username = ""
+
 
 @app.route("/sender/register", methods=["POST"])
 def register():
@@ -78,15 +82,16 @@ def register():
     if fields["password"] != fields["password2"]:
         errors.append("Passwords does not match")
         errors_pl.append("Hasła nie są takie same.")
-    
+
     if fields["username"] and not re.fullmatch(r"^[a-z]{3,20}", fields["username"]):
         errors.append("Username must contain only 3-20 lowercase letters")
-        errors_pl.append("Nazwa użytkownika musi składać się z 3-20 małych liter.")
-    
+        errors_pl.append(
+            "Nazwa użytkownika musi składać się z 3-20 małych liter.")
+
     if fields["username"] and db.hexists(f"user:{fields['username']}", "password"):
         errors.append("Username is taken")
         errors_pl.append("Nazwa użytkownika jest zajęta.")
-    
+
     if len(errors) > 0:
         return error(errors, errors_pl)
 
@@ -99,7 +104,7 @@ def register():
     hashed = hashpw(password, gensalt(5))
     db.hset(f"user:{fields['username']}", "password", hashed)
     db.sadd("users", fields["username"])
-    
+
     links = [Link("sender:login", "/sender/login")]
 
     document = Document(links=links)
@@ -136,15 +141,18 @@ def login():
         "iat": datetime.utcnow(),
         "sub": username
     }
-    token = encode(payload, str(app.config.get("JWT_SECRET")), algorithm="HS256")
+    token = encode(payload, str(
+        app.config.get("JWT_SECRET")), algorithm="HS256")
 
     links = [
         Link("sender:dashboard", "/sender/dashboard"),
         Link("sender:logout", "/sender/logout")
     ]
 
-    document = Document(data={"status": "logged-in", "token": token.decode()}, links=links)
+    document = Document(data={"status": "logged-in",
+                              "token": token.decode()}, links=links)
     return document.to_json()
+
 
 @app.route("/sender/<username>/packages", methods=["GET"])
 def get_sender_packages(username):
@@ -162,25 +170,27 @@ def get_sender_packages(username):
 
     links = [
         Link("package:create", "/sender/" + g.username + "/packages"),
-        Link("package:delete", "/sender/" + g.username + "/packages/{id}", templated=True)
+        Link("package:delete", "/sender/" + g.username +
+             "/packages/{id}", templated=True)
     ]
 
     document = Document(data={"packages": packages}, links=links)
     return document.to_json()
 
+
 @app.route("/sender/<username>/packages", methods=["POST"])
 def add_sender_package(username):
     if username != g.get("username") or g.get("username") == COURIER_NAME:
         return error("Unauthorized", "Brak dostępu.")
-    
+
     package = request.json
 
     if not package.get("recipient"):
         return error("No recipient provided", "Nazwa adresata nie może być pusta.")
-    
+
     if not package.get("box_id"):
         return error("No box_id provided", "Numer skrytki nie może być pusty.")
-    
+
     try:
         box_id = int(package.get("box_id"))
     except ValueError:
@@ -192,23 +202,28 @@ def add_sender_package(username):
 
     id = uuid4()
     db.hset(f"package:{id}", "recipient", package["recipient"])
+    db.hset(f"package:{id}", "sender", username)
     db.hset(f"package:{id}", "box_id", box_id)
     db.hset(f"package:{id}", "size", size)
     db.hset(f"package:{id}", "status", "label")
     db.sadd(f"user_packages:{username}", f"package:{id}")
 
-    log("Created package: " + str(db.hgetall(f"package:{id}")) + " from sender " + username)
+    log("Created package: " +
+        str(db.hgetall(f"package:{id}")) + " from sender " + username)
 
-    links = [Link("package:delete", "/sender/" + g.username + "/packages/" + str(id))]
+    links = [Link("package:delete", "/sender/" +
+                  g.username + "/packages/" + str(id))]
     document = Document(links=links)
     return document.to_json(), 201
+
 
 @app.route("/sender/<username>/packages/<id>", methods=["DELETE"])
 def delete_sender_package(username, id):
     if username != g.get("username") or g.get("username") == COURIER_NAME:
         return error("Unauthorized", "Brak dostępu.", 401)
 
-    is_package_sender = db.sismember(f"user_packages:{username}", f"package:{id}")
+    is_package_sender = db.sismember(
+        f"user_packages:{username}", f"package:{id}")
 
     if not db.hget(f"package:{id}", "recipient"):
         return error("Package not found", "Nie znaleziono paczki")
@@ -232,6 +247,7 @@ def delete_sender_package(username, id):
 def error(error, error_pl, code=400):
     return {"error": error, "error_pl": error_pl}, code
 
+
 def log(message):
     time = "INFO [" + str(datetime.now()) + "]"
     print(time + ": " + message, flush=True)
@@ -249,8 +265,9 @@ def courier_packages():
             package["id"] = package_name.replace("package:", "")
             package["sender"] = user
             packages.append(package)
-    
-    links = [Link("package:update_status", "/courier/packages/{id}", templated=True)]
+
+    links = [Link("package:update_status",
+                  "/courier/packages/{id}", templated=True)]
     document = Document(data={"packages": packages}, links=links)
     return document.to_json()
 
@@ -259,7 +276,7 @@ def courier_packages():
 def change_status(id):
     if g.username != COURIER_NAME:
         return error("Unauthorized", "Brak dostępu.", 401)
-    
+
     json = request.json
     if not json:
         return error("No JSON provided", "Niepoprawne żądanie, brak zawartości JSON.")
@@ -274,9 +291,30 @@ def change_status(id):
 
     db.hset(package, "status", status)
 
+    sender = db.hget(package, "sender")
+    db.publish(f"user:{sender}", "Nowy status paczki!")
+
     links = [Link("packages", "/courier/packages")]
     document = Document(data={"package": db.hgetall(package)}, links=links)
     return document.to_json()
+
+
+@app.route('/notifications')
+def poll():
+    username = g.get("username")
+    if not username:
+        return "Unathorized", 401
+    
+    sub = db.pubsub()
+    sub.subscribe(f"user:{username}")
+
+    for i in range(10):
+        message = sub.get_message(ignore_subscribe_messages=True)
+        if message:
+            return {"data": str(message.get("data"))}
+        time.sleep(0.5)
+    
+    return "", 204
 
 
 if __name__ == "__main__":

@@ -76,6 +76,11 @@
     <footer class="footer container text-light">
         <p>2020 <a class="text-light" href="https://github.com/Wydzials/AlPaczka">Link do repozytorium</a></p>
     </footer>
+
+    {% if session["username"] %}
+    <script src="{{ url_for('static', filename='notifications.js') }}"></script>
+    {% endif %}
+
 </body>
 
 </html>

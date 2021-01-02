@@ -27,7 +27,7 @@ db = Redis.from_url(cloud_url, decode_responses=True) if cloud_url else Redis(
 JWT_SECRET = getenv("API_SECRET")
 app.config.from_object(__name__)
 
-JWT_LIFETIME = 300
+JWT_LIFETIME = 30
 COURIER_NAME = "COURIER"
 
 
@@ -289,10 +289,11 @@ def change_status(id):
     if not db.hexists(package, "status"):
         return error("Package not found", "Nie znaleziono paczki o danym identyfikatorze.")
 
-    db.hset(package, "status", status)
+    if status != db.hget(package, "status"):
+        sender = db.hget(package, "sender")
+        db.publish(f"user:{sender}", "Nowy status paczki!")
+        db.hset(package, "status", status)
 
-    sender = db.hget(package, "sender")
-    db.publish(f"user:{sender}", "Nowy status paczki!")
 
     links = [Link("packages", "/courier/packages")]
     document = Document(data={"package": db.hgetall(package)}, links=links)
@@ -302,9 +303,6 @@ def change_status(id):
 @app.route('/notifications')
 def poll():
     username = g.get("username")
-    if not username:
-        return "Unathorized", 401
-    
     sub = db.pubsub()
     sub.subscribe(f"user:{username}")
 

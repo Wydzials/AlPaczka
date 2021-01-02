@@ -55,8 +55,7 @@ def before_request():
         authorization = decode(token, verify=False)
         exp = datetime.utcfromtimestamp(authorization.get("exp"))
 
-        print("Token exp: " + str(exp), flush=True)
-        if datetime.utcnow() > exp:
+        if request.path != "/notifications" and datetime.utcnow() > exp:
             session.clear()
             flash("Sesja wygasła, zaloguj się ponownie.", "warning")
             return redirect(url_for("sender_login"))
@@ -216,13 +215,16 @@ def api(method, url, json="", authorize=True):
 
 @app.route('/notifications')
 def poll():
-    if not g.username:
+    if not g.get("username"):
         return "Unathorized", 401
 
     r = api("GET", "/notifications")
+
     if r.status_code == 200:
         data = r.json().get("data")
         response = make_response(data, 200)
+    elif r.status_code == 401:
+        response = make_response("", 401)
     else:
         response = make_response("", 204)
 

@@ -9,6 +9,8 @@ from uuid import uuid4
 from os import getenv
 from jwt import decode
 from werkzeug.exceptions import ServiceUnavailable
+from six.moves.urllib.parse import urlencode
+from authlib.integrations.flask_client import OAuth
 
 import re
 import requests
@@ -33,6 +35,51 @@ if API_URL is None:
 app.config.from_object(__name__)
 ses = Session(app)
 
+oauth = OAuth(app)
+
+AUTH0_CALLBACK_URL = getenv("AUTH0_CALLBACK_URL")
+AUTH0_CLIENT_ID = getenv("AUTH0_CLIENT_ID")
+AUTH0_CLIENT_SECRET = getenv("AUTH0_CLIENT_SECRET")
+AUTH0_DOMAIN = getenv("AUTH0_DOMAIN")
+AUTH0_BASE_URL = "https://" + getenv("AUTH0_DOMAIN")
+AUTH0_AUDIENCE = getenv("AUTH0_AUDIENCE")
+
+auth0 = oauth.register(
+    'auth0',
+    client_id=AUTH0_CLIENT_ID,
+    client_secret=AUTH0_CLIENT_SECRET,
+    api_base_url=AUTH0_BASE_URL,
+    access_token_url=AUTH0_BASE_URL + '/oauth/token',
+    authorize_url=AUTH0_BASE_URL + '/authorize',
+    client_kwargs={
+        'scope': 'openid profile email',
+    },
+)
+
+
+@app.route("/auth0/login")
+def auth0_login():
+    return auth0.authorize_redirect(redirect_uri=AUTH0_CALLBACK_URL, audience=AUTH0_AUDIENCE)
+
+
+@app.route("/auth0/callback")
+def auth0_callback():
+    auth0.authorize_access_token()
+    resp = auth0.get('userinfo')
+    userinfo = resp.json()
+
+    session["auth0_profile"] = {
+        'user_id': userinfo['sub'],
+        'name': userinfo['name'],
+        'picture': userinfo['picture']
+    }
+
+    session["username"] = "auth0_" + userinfo['name']
+    session["logged-at"] = datetime.now()
+    flash("Zalogowano na konto nadawcy.", "success")
+
+    return redirect(url_for("index"))
+
 
 @app.errorhandler(500)
 def internal_error(error):
@@ -52,7 +99,8 @@ def before_request():
 
     token = session.get("token")
     if token:
-        authorization = decode(token, verify=False)
+        authorization = decode(token, algorithms=["HS256"], options={
+                               "verify_signature": False})
         exp = datetime.utcfromtimestamp(authorization.get("exp"))
 
         if request.path != "/notifications" and datetime.utcnow() > exp:
@@ -131,9 +179,16 @@ def sender_login():
 
 @app.route("/sender/logout")
 def sender_logout():
-    session.clear()
     flash("Wylogowano pomyślnie.", "success")
-    return redirect(url_for("index"))
+
+    if "auth0_" in session.get("username"):
+        session.clear()
+        params = {'returnTo': url_for('index', _external=True),
+                  'client_id': AUTH0_CLIENT_ID}
+        return redirect(auth0.api_base_url + '/v2/logout?' + urlencode(params))
+    else:
+        session.clear()
+        return redirect(url_for("index"))
 
 
 @app.route("/sender/dashboard", methods=["GET", "POST"])

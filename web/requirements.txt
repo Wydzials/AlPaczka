@@ -6,3 +6,5 @@ redis
 bcrypt
 pyjwt
 requests
+authlib
+six

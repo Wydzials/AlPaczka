@@ -7,10 +7,11 @@ from bcrypt import hashpw, gensalt, checkpw
 from datetime import datetime
 from uuid import uuid4
 from os import getenv
-from jwt import decode
+from jwt import decode, encode
 from werkzeug.exceptions import ServiceUnavailable
 from six.moves.urllib.parse import urlencode
 from authlib.integrations.flask_client import OAuth
+from datetime import timedelta
 
 import re
 import requests
@@ -19,6 +20,10 @@ import time
 
 app = Flask(__name__)
 load_dotenv()
+
+cloud_url = getenv("REDIS_URL")
+db = Redis.from_url(cloud_url, decode_responses=True) if cloud_url else Redis(
+    host="redis", decode_responses=True)
 
 
 SESSION_TYPE = "filesystem"
@@ -64,21 +69,30 @@ def auth0_login():
 
 @app.route("/auth0/callback")
 def auth0_callback():
-    auth0.authorize_access_token()
-    resp = auth0.get('userinfo')
-    userinfo = resp.json()
+    try:
+        auth0.authorize_access_token()
+        resp = auth0.get('userinfo')
+        userinfo = resp.json()
+        username = "auth0-" + userinfo['nickname']
+    except:
+        flash("Próba zalogowania nie powiodła się.")
+        return redirect(url_for("sender_login"))
 
-    session["auth0_profile"] = {
-        'user_id': userinfo['sub'],
-        'name': userinfo['name'],
-        'picture': userinfo['picture']
+    if not db.sismember("users", username):
+        db.hset(f"user:{username}", "email", userinfo.get("email"))
+        db.sadd("users", username)
+
+    payload = {
+        "exp": datetime.utcnow() + timedelta(seconds=300),
+        "iat": datetime.utcnow(),
+        "sub": username
     }
-
-    session["username"] = "auth0_" + userinfo['name']
+    session["token"] = encode(payload, getenv("API_SECRET"), algorithm="HS256")
+    session["username"] = username
     session["logged-at"] = datetime.now()
-    flash("Zalogowano na konto nadawcy.", "success")
 
-    return redirect(url_for("index"))
+    flash("Zalogowano na konto nadawcy.", "success")
+    return redirect(url_for("sender_dashboard"))
 
 
 @app.errorhandler(500)
@@ -181,7 +195,7 @@ def sender_login():
 def sender_logout():
     flash("Wylogowano pomyślnie.", "success")
 
-    if "auth0_" in session.get("username"):
+    if "auth0-" in session.get("username"):
         session.clear()
         params = {'returnTo': url_for('index', _external=True),
                   'client_id': AUTH0_CLIENT_ID}

@@ -86,6 +86,8 @@ def get_packages():
     for package in packages:
         package["size"] = sizes[int(package["size"])]
         package["status"] = statuses[package["status"]]
+        if "auth0-" in package["sender"]:
+            package["sender"] = package["sender"][6:]
 
     return packages
 

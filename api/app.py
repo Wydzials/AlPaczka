@@ -27,7 +27,7 @@ db = Redis.from_url(cloud_url, decode_responses=True) if cloud_url else Redis(
 JWT_SECRET = getenv("API_SECRET")
 app.config.from_object(__name__)
 
-JWT_LIFETIME = 30
+JWT_LIFETIME = 300
 COURIER_NAME = "COURIER"
 
 
@@ -35,9 +35,8 @@ COURIER_NAME = "COURIER"
 def before():
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
     try:
-        authorization = decode(token, str(JWT_SECRET), algorithms=["HS256"])
+        authorization = decode(token, JWT_SECRET, algorithms=["HS256"])
         g.username = authorization.get("sub")
-        log("Authorized: " + g.username)
     except ExpiredSignatureError:
         if request.path != "/login":
             log("Expired token for path: " + request.path)
@@ -141,8 +140,7 @@ def login():
         "iat": datetime.utcnow(),
         "sub": username
     }
-    token = encode(payload, str(
-        app.config.get("JWT_SECRET")), algorithm="HS256")
+    token = encode(payload, str(JWT_SECRET), algorithm="HS256")
 
     links = [
         Link("sender:dashboard", "/sender/dashboard"),

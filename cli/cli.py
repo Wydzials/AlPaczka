@@ -4,6 +4,7 @@ from datetime import datetime
 from jwt import decode
 from PyInquirer import prompt
 import requests
+import sys
 
 
 WIDTH = 60
@@ -34,7 +35,7 @@ def header():
         print(row.format(f"{prefix} {delta.days} dni."))
     else:
         print(row.format(f"{prefix} {delta.seconds // 3600} godzin."))
-    
+
     print("-" * WIDTH)
     if datetime.utcnow() >= exp:
         print("Twój token jest nieważny!")
@@ -47,7 +48,7 @@ def header():
 
 
 def api(method, url, json=""):
-    headers = {"Authorization": TOKEN}
+    headers = {"authorization": "Bearer " + TOKEN}
     url = API_URL + url
 
     try:
@@ -61,7 +62,7 @@ def api(method, url, json=""):
             r = requests.patch(url, json=json, headers=headers)
 
         if r.status_code != 200:
-            print("Błąd połączenia z api")
+            print("Błąd połączenia z API")
             error = r.json().get("error_pl")
             if error:
                 print(error)
@@ -255,7 +256,7 @@ def menu():
         choice = list_menu("Wybierz paczkę do zmiany statusu:", labels=False)
         if choice != "cancel":
             change_status(choice)
-    
+
     elif choice == 2:
         header()
         print(" Witaj w aplikacji dla kuriera AlPaczka!")
@@ -270,16 +271,61 @@ def menu():
         exit()
 
 
-load_dotenv()
-API_URL = getenv("API_URL") or "https://alpaczka-api.herokuapp.com"
-TOKEN = getenv("TOKEN")
+def login():
+    questions = [
+        {
+            "type": "input",
+            "name": "username",
+            "message": "Nazwa użytkownika: ",
+        },
+        {
+            "type": "password",
+            "name": "password",
+            "message": "Hasło: ",
+        }
+    ]
+    clear()
+    answers = prompt(questions)
+    return answers.get("username"), answers.get("password")
 
-if not TOKEN:
-    print("Nie znaleziono tokenu do autoryzacji!")
+
+def get_token(username, password):
+    headers = {"content-type": "application/x-www-form-urlencoded"}
+    data = {
+        "username": username,
+        "password": password,
+        "grant_type": "password",
+        "audience": API_IDENTIFIER,
+        "scope": "openid",
+        "client_id": "kAutGBEknui7WbLTY3f1MuvkAALUSvIJ",
+        "client_secret": "RTi6Lc782ibva5Ty3W1wPtfOsmYPNg94-3CFGpQrceRkhIygaIXknl9RWHUjSWSO"
+    }
+    r = requests.post(AUTH0_DOMAIN + "/oauth/token",
+                      data=data, headers=headers)
+
+    return r.json().get("access_token")
+
+
+if len(sys.argv) < 2:
+    API_URL = "https://alpaczka-api.herokuapp.com"
+else:
+    API_URL = sys.argv[1]
+
+load_dotenv()
+AUTH0_DOMAIN = "https://" + getenv("AUTH0_CLI_DOMAIN", "")
+API_IDENTIFIER = getenv("API_IDENTIFIER")
+
+username, password = login()
+TOKEN = get_token(username, password)
+
+try:
+    authorization = decode(TOKEN, algorithms=["HS256"], options={
+        "verify_signature": False}, audience=API_IDENTIFIER)
+    exp = datetime.utcfromtimestamp(authorization.get("exp"))
+except:
+    print("Nieprawidłowe dane logowania.")
     exit()
 
-authorization = decode(TOKEN, verify=False)
-exp = datetime.utcfromtimestamp(authorization.get("exp"))
 
 while True:
     menu()

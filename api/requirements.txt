@@ -5,3 +5,5 @@ redis
 bcrypt
 pyjwt
 flask_hal
+python-jose
+six

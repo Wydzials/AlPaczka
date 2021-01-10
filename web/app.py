@@ -40,8 +40,8 @@ if API_URL is None:
 app.config.from_object(__name__)
 ses = Session(app)
 
-oauth = OAuth(app)
 
+oauth = OAuth(app)
 AUTH0_CALLBACK_URL = getenv("AUTH0_CALLBACK_URL")
 AUTH0_CLIENT_ID = getenv("AUTH0_CLIENT_ID")
 AUTH0_CLIENT_SECRET = getenv("AUTH0_CLIENT_SECRET")
@@ -195,7 +195,7 @@ def sender_login():
 def sender_logout():
     flash("Wylogowano pomyślnie.", "success")
 
-    if "auth0-" in session.get("username"):
+    if "auth0-" in session.get("username", ""):
         session.clear()
         params = {'returnTo': url_for('index', _external=True),
                   'client_id': AUTH0_CLIENT_ID}

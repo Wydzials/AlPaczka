@@ -10,6 +10,9 @@ from datetime import datetime, timedelta
 from jwt import encode, decode, ExpiredSignatureError
 from uuid import uuid4
 from os import getenv
+from functools import wraps
+from six.moves.urllib.request import urlopen
+from jose import jwt
 
 import json
 import re
@@ -30,25 +33,94 @@ app.config.from_object(__name__)
 JWT_LIFETIME = 300
 COURIER_NAME = "COURIER"
 
+AUTH0_CLI_DOMAIN = getenv("AUTH0_CLI_DOMAIN")
+API_IDENTIFIER = getenv("API_IDENTIFIER")
 
-@app.before_request
-def before():
-    token = request.headers.get("Authorization", "").replace("Bearer ", "")
-    try:
-        authorization = decode(token, JWT_SECRET, algorithms=["HS256"])
-        g.username = authorization.get("sub")
-    except ExpiredSignatureError:
-        if request.path != "/login":
-            log("Expired token for path: " + request.path)
 
-            links = [Link("login", "/login")]
-            data = {"error": "Expired token",
-                    "error_pl": "Token wygasł, zaloguj się ponownie."}
-            document = Document(data=data, links=links)
-            return document.to_json(), 401
-    except Exception as e:
-        log("Unauthorized: " + str(e))
-        g.username = ""
+class AuthError(Exception):
+    def __init__(self, error=None, status_code=401):
+        self.error = error
+        self.status_code = status_code
+
+
+@app.errorhandler(AuthError)
+def handle_auth_error(e):
+    log(str(e))
+    data = {"error": "Invalid token",
+            "error_pl": "Błędny token."}
+    document = Document(data=data)
+    return document.to_json(), 401
+
+
+def sender_token_required(function):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        token = request.headers.get("Authorization", "").replace("Bearer ", "")
+        try:
+            authorization = decode(token, JWT_SECRET, algorithms=["HS256"])
+            g.username = authorization.get("sub")
+        except ExpiredSignatureError:
+            if request.path != "/login":
+                log("Expired token for path: " + request.path)
+
+                links = [Link("login", "/login")]
+                data = {"error": "Expired token",
+                        "error_pl": "Token wygasł, zaloguj się ponownie."}
+                document = Document(data=data, links=links)
+                return document.to_json(), 401
+        except Exception as e:
+            log("Unauthorized: " + str(e))
+            g.username = ""
+        return function(*args, **kwargs)
+    return wrapper
+
+
+def courier_token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.headers.get("Authorization", None)
+        if not auth:
+            raise AuthError()
+
+        parts = auth.split()
+        if len(parts) != 2 or parts[0].lower() != "bearer":
+            raise AuthError()
+        token = parts[1]
+
+        jsonurl = urlopen("https://"+AUTH0_CLI_DOMAIN+"/.well-known/jwks.json")
+        jwks = json.loads(jsonurl.read())
+
+        try:
+            unverified_header = jwt.get_unverified_header(token)
+        except Exception:
+            raise AuthError()
+
+        rsa_key = {}
+        for key in jwks["keys"]:
+            if key["kid"] == unverified_header["kid"]:
+                rsa_key = {
+                    "kty": key["kty"],
+                    "kid": key["kid"],
+                    "use": key["use"],
+                    "n": key["n"],
+                    "e": key["e"]
+                }
+        if rsa_key:
+            try:
+                jwt.decode(
+                    token,
+                    rsa_key,
+                    algorithms=["RS256"],
+                    audience=API_IDENTIFIER,
+                    issuer="https://"+AUTH0_CLI_DOMAIN+"/"
+                )
+            except Exception:
+                raise AuthError()
+
+            g.username = "COURIER"
+            return f(*args, **kwargs)
+        raise AuthError()
+    return decorated
 
 
 @app.route("/sender/register", methods=["POST"])
@@ -148,11 +220,12 @@ def login():
     ]
 
     document = Document(data={"status": "logged-in",
-                              "token": token.decode()}, links=links)
+                              "token": token}, links=links)
     return document.to_json()
 
 
 @app.route("/sender/<username>/packages", methods=["GET"])
+@sender_token_required
 def get_sender_packages(username):
     if username != g.get("username") or g.get("username") == COURIER_NAME:
         return error("Unauthorized", "Brak dostępu.")
@@ -177,6 +250,7 @@ def get_sender_packages(username):
 
 
 @app.route("/sender/<username>/packages", methods=["POST"])
+@sender_token_required
 def add_sender_package(username):
     if username != g.get("username") or g.get("username") == COURIER_NAME:
         return error("Unauthorized", "Brak dostępu.")
@@ -216,6 +290,7 @@ def add_sender_package(username):
 
 
 @app.route("/sender/<username>/packages/<id>", methods=["DELETE"])
+@sender_token_required
 def delete_sender_package(username, id):
     if username != g.get("username") or g.get("username") == COURIER_NAME:
         return error("Unauthorized", "Brak dostępu.", 401)
@@ -252,6 +327,7 @@ def log(message):
 
 
 @app.route("/courier/packages")
+@courier_token_required
 def courier_packages():
     if g.username != COURIER_NAME:
         return error("Unauthorized", "Brak dostępu.", 401)
@@ -271,6 +347,7 @@ def courier_packages():
 
 
 @app.route("/courier/packages/<id>", methods=["PATCH"])
+@courier_token_required
 def change_status(id):
     if g.username != COURIER_NAME:
         return error("Unauthorized", "Brak dostępu.", 401)
@@ -300,6 +377,7 @@ def change_status(id):
 
 
 @app.route('/notifications')
+@sender_token_required
 def poll():
     username = g.get("username")
     sub = db.pubsub()

@@ -74,7 +74,7 @@ def auth0_callback():
         userinfo = resp.json()
         username = "auth0-" + userinfo['nickname']
     except:
-        flash("Próba zalogowania nie powiodła się.")
+        flash("Próba zalogowania nie powiodła się.", "danger")
         return redirect(url_for("sender_login"))
 
     if not db.sismember("users", username):

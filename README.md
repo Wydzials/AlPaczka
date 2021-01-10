@@ -35,6 +35,7 @@ When running the application for the first time, provide secrets for `api` and `
 ```bash
 $ ./run-docker-compose.sh [web secret] [api secret]
 ```
+Now you should be able to access web application: https://0.0.0.0:8000/.
 
 The command line application for couriers requires `cli/.env` file:
 ```
@@ -59,7 +60,7 @@ Then run application with `docker-compose`:
 $ docker-compose build
 $ docker-compose up
 ```
-Now you should be able to access web application: http://localhost:8000/.
+Now you should be able to access web application: https://0.0.0.0:8000/.
 
 To run the app for couriers execute commands:
 ```bash

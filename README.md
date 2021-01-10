@@ -5,9 +5,9 @@ Flask web application for modern package delivery system.
 
 ## P4 Setup
 ### A) Heroku
-This application is deployed on Heroku: https://alpaczka-p3.herokuapp.com/.
+This application is deployed on Heroku: https://alpaczka-p4.herokuapp.com/.
 
-To run the command line app for couriers, you need to create `/cli/.env` file with auth0 api parameters:
+To run the command line app for couriers, you need to create `cli/.env` file with auth0 api parameters:
 ```
 AUTH0_CLI_DOMAIN=[...]
 API_IDENTIFIER=[...]
@@ -20,7 +20,7 @@ $ ./run-cli.sh heroku
 
 ### B) Docker-compose
 #### Easy way
-If you want to use auth0 login, you need to create `/.env` file with auth0 parameters:
+If you want to use auth0 login, you need to create `.env` file with auth0 parameters:
 ```
 AUTH0_CALLBACK_URL=[...]
 AUTH0_CLIENT_ID=[...]
@@ -29,13 +29,14 @@ AUTH0_DOMAIN=[...]
 AUTH0_CLI_DOMAIN=[...]
 API_IDENTIFIER=[...]
 ```
+Then add SSL certificate: `web/cert.pem`, `web/key.pem`.
 
-Then, when running the application for the first time, provide secrets for `api` and `web`. Next time just run the script with no arguments.
+When running the application for the first time, provide secrets for `api` and `web`. Next time just run the script with no arguments.
 ```bash
 $ ./run-docker-compose.sh [web secret] [api secret]
 ```
 
-The command line application for couriers requires `/cli/.env` file:
+The command line application for couriers requires `cli/.env` file:
 ```
 AUTH0_CLI_DOMAIN=[...]
 API_IDENTIFIER=[...]

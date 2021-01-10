@@ -367,8 +367,9 @@ def change_status(id):
     if status != db.hget(package, "status"):
         sender = db.hget(package, "sender")
         recipient = db.hget(package, "recipient")
+        box_id = db.hget(package, "box_id")
         db.publish(
-            f"user:{sender}", f"Nowy status paczki dla adresata {recipient}! Odśwież stronę, aby zobaczyć zmiany.")
+            f"user:{sender}", f"Nowy status paczki dla adresata '{recipient}', nadanej do skrytki numer {box_id}!\nOdśwież stronę, aby zobaczyć zmiany.")
         db.hset(package, "status", status)
 
     links = [Link("packages", "/courier/packages")]

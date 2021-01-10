@@ -47,7 +47,7 @@ AUTH0_CLIENT_ID = getenv("AUTH0_CLIENT_ID")
 AUTH0_CLIENT_SECRET = getenv("AUTH0_CLIENT_SECRET")
 AUTH0_DOMAIN = getenv("AUTH0_DOMAIN")
 AUTH0_BASE_URL = "https://" + getenv("AUTH0_DOMAIN")
-AUTH0_AUDIENCE = getenv("AUTH0_AUDIENCE")
+
 
 auth0 = oauth.register(
     'auth0',
@@ -64,7 +64,7 @@ auth0 = oauth.register(
 
 @app.route("/auth0/login")
 def auth0_login():
-    return auth0.authorize_redirect(redirect_uri=AUTH0_CALLBACK_URL, audience=AUTH0_AUDIENCE)
+    return auth0.authorize_redirect(redirect_uri=AUTH0_CALLBACK_URL)
 
 
 @app.route("/auth0/callback")

@@ -5,4 +5,4 @@ ADD requirements.txt /app
 RUN pip3 install -r requirements.txt
 ADD . /app
 EXPOSE 8000
-ENTRYPOINT ["gunicorn", "-b", "0.0.0.0:8000", "--worker-tmp-dir", "/dev/shm", "--workers", "4", "app:app"]
+ENTRYPOINT ["gunicorn", "-b", "0.0.0.0:8000", "--worker-tmp-dir", "/dev/shm", "--workers", "6", "app:app"]

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [[ -n $1 && -n $2 ]]; then
-	echo "WEB_SECRET='$1'" > .env
+	echo "WEB_SECRET='$1'" >> .env
 	echo "API_SECRET='$2'" >> .env
 fi
 

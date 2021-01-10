@@ -15,14 +15,13 @@ function displayNotification(text, type) {
 }
 
 async function longPolling() {
-    let response = await fetch("http://0.0.0.0:8000/notifications", { credentials: "include" });
+    let response = await fetch("https://0.0.0.0:8000/notifications", { credentials: "include" });
 
     if (response.status == 204) {
         await longPolling();
     }
     else if (response.status == 401) {
         displayNotification("Sesja wygasła, zaloguj się ponownie.", "warning")
-        //window.location.reload();
     }
     else if (response.status != 200) {
         console.log(response);

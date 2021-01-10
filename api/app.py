@@ -388,8 +388,9 @@ def poll():
         message = sub.get_message(ignore_subscribe_messages=True)
         if message:
             return {"data": str(message.get("data"))}
-        time.sleep(0.5)
-
+        time.sleep(1)
+    
+    sub.unsubscribe()
     return "", 204
 
 

@@ -35,7 +35,6 @@ SECRET_KEY = getenv("WEB_SECRET")
 API_URL = getenv("API_URL")
 if API_URL is None:
     API_URL = "http://api:8000"
-    SESSION_COOKIE_SECURE = False
 
 app.config.from_object(__name__)
 ses = Session(app)

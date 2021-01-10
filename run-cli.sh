@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [[ $1 == "heroku" ]]; then
-	api="https://alpaczka-api.herokuapp.com"
+	api="https://alpaczka-api-p4.herokuapp.com"
 elif [[ $1 == "local" ]]; then
 	api="http://0.0.0.0:8001"
 else

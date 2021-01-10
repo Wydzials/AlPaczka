@@ -15,7 +15,7 @@ function displayNotification(text, type) {
 }
 
 async function longPolling() {
-    let response = await fetch("https://0.0.0.0:8000/notifications", { credentials: "include" });
+    let response = await fetch("/notifications", { credentials: "include" });
 
     if (response.status == 204) {
         await longPolling();
